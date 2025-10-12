@@ -25,13 +25,17 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Check if Compass, Fin, or Leap wallet is installed
       if (!window.compass && !window.fin && !window.leap) {
-        throw new Error(
-          "No Sei wallet found. Please install Compass, Fin, or Leap wallet extension."
-        );
+        const message = "No Sei wallet detected! Please install one of these:\n\n• Compass Wallet\n• Fin Wallet\n• Leap Wallet";
+        alert(message);
+        window.open("https://www.compasswallet.io/", "_blank");
+        throw new Error(message);
       }
 
       // Try wallets in order of preference
       const wallet = window.compass || window.fin || window.leap;
+      const walletName = window.compass ? "Compass" : window.fin ? "Fin" : "Leap";
+      
+      console.log(`Attempting to connect with ${walletName} wallet...`);
       
       await wallet.enable(SEI_CONFIG.chainId);
       const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
@@ -56,8 +60,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       setBalance((Number(bal.amount) / 1_000_000).toFixed(2));
 
       localStorage.setItem("wallet_connected", "true");
-    } catch (error) {
+      console.log("Wallet connected successfully!");
+    } catch (error: any) {
       console.error("Failed to connect wallet:", error);
+      if (error.message && !error.message.includes("No Sei wallet")) {
+        alert("Wallet connection failed: " + error.message);
+      }
       throw error;
     } finally {
       setIsConnecting(false);

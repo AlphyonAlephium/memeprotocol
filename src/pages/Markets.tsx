@@ -81,13 +81,13 @@ const Markets = () => {
           />
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTokens.map((token) => (
             <Card
               key={token.id}
               className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all hover:glow-effect cursor-pointer"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-3xl">
                     {token.image}
@@ -98,15 +98,15 @@ const Markets = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-8 items-center">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Price</p>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Price</p>
                     <p className="text-lg font-bold text-accent">
                       {token.price} SEI
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">24h Change</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">24h Change</p>
                     <div className="flex items-center gap-1">
                       {token.change24h > 0 ? (
                         <>
@@ -125,14 +125,13 @@ const Markets = () => {
                       )}
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Volume 24h</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Volume 24h</p>
                     <p className="font-semibold">{token.volume24h} SEI</p>
                   </div>
-                  <div>
-                    <Button className="w-full glow-effect-cyan">Trade</Button>
-                  </div>
                 </div>
+
+                <Button className="w-full glow-effect-cyan">Trade</Button>
               </div>
             </Card>
           ))}

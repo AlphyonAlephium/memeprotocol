@@ -1,9 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Rocket, TrendingUp, PlusCircle, User } from "lucide-react";
+import { Rocket, TrendingUp, PlusCircle, User, Wallet, LogOut } from "lucide-react";
+import { useWallet } from "@/contexts/WalletContext";
 
 const Header = () => {
   const location = useLocation();
+  const { isConnected, connectWallet, disconnectWallet, isConnecting, address, balance } = useWallet();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -49,9 +51,23 @@ const Header = () => {
           </Link>
         </nav>
 
-        <Button variant="default" className="glow-effect">
-          Connect Wallet
-        </Button>
+        {!isConnected ? (
+          <Button variant="default" className="glow-effect" onClick={connectWallet} disabled={isConnecting}>
+            <Wallet className="w-4 h-4 mr-2" />
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
+          </Button>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-xs text-muted-foreground">Balance</p>
+              <p className="text-sm font-medium">{balance} SEI</p>
+            </div>
+            <Button variant="secondary" onClick={disconnectWallet} title="Disconnect" className="font-mono">
+              <LogOut className="w-4 h-4 mr-2" />
+              {address?.slice(0, 6)}...{address?.slice(-4)}
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );

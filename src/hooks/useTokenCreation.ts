@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE, DEFAULT_TOKEN_SUPPLY } from "@/config/contracts";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TokenCreationParams {
   name: string;
@@ -19,46 +20,74 @@ export const useTokenCreation = () => {
       throw new Error("Wallet not connected");
     }
 
-    if (CONTRACTS.tokenFactory === "sei1...") {
-      toast.error("Contract not configured. Please deploy contracts first.");
-      throw new Error("Token factory contract address not configured");
-    }
-
     setIsCreating(true);
     try {
-      // Prepare the contract execution message
-      const msg = {
-        create_meme_token: {
+      let contractAddress = null;
+      let transactionHash = null;
+
+      // If contracts are deployed, interact with blockchain
+      if (CONTRACTS.tokenFactory !== "sei1...") {
+        // Prepare the contract execution message
+        const msg = {
+          create_meme_token: {
+            name: params.name,
+            symbol: params.symbol,
+            total_supply: DEFAULT_TOKEN_SUPPLY,
+            image_url: params.imageUrl,
+            description: params.description,
+          },
+        };
+
+        // Execute the contract with 20 SEI payment
+        const result = await client.execute(
+          address,
+          CONTRACTS.tokenFactory,
+          msg,
+          "auto",
+          undefined,
+          [{ denom: "usei", amount: TOKEN_CREATION_FEE }]
+        );
+
+        contractAddress = result.logs[0]?.events
+          .find((e) => e.type === "wasm")
+          ?.attributes.find((a) => a.key === "token_address")?.value || null;
+        
+        transactionHash = result.transactionHash;
+      }
+
+      // Store token metadata in database
+      const { data: tokenData, error: dbError } = await supabase
+        .from("tokens")
+        .insert({
+          creator_address: address,
           name: params.name,
           symbol: params.symbol,
-          total_supply: DEFAULT_TOKEN_SUPPLY,
-          image_url: params.imageUrl,
           description: params.description,
-        },
-      };
+          image_url: params.imageUrl,
+          contract_address: contractAddress,
+          transaction_hash: transactionHash,
+          total_supply: DEFAULT_TOKEN_SUPPLY,
+        })
+        .select()
+        .single();
 
-      // Execute the contract with 20 SEI payment
-      const result = await client.execute(
-        address,
-        CONTRACTS.tokenFactory,
-        msg,
-        "auto", // Auto-calculate gas
-        undefined,
-        [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 20 SEI fee
+      if (dbError) {
+        console.error("Database error:", dbError);
+        toast.error("Failed to save token metadata");
+        throw dbError;
+      }
+
+      toast.success(
+        contractAddress 
+          ? `Token deployed! TX: ${transactionHash?.slice(0, 8)}...`
+          : "Token metadata saved! Deploy contracts to launch on-chain"
       );
-
-      // Parse the transaction result to get the new token address
-      const newTokenAddress = result.logs[0]?.events
-        .find((e) => e.type === "wasm")
-        ?.attributes.find((a) => a.key === "token_address")?.value;
-
-      toast.success(`Token created successfully! TX: ${result.transactionHash}`);
 
       return {
         success: true,
-        transactionHash: result.transactionHash,
-        tokenAddress: newTokenAddress,
-        blockHeight: result.height,
+        transactionHash,
+        tokenAddress: contractAddress,
+        tokenId: tokenData.id,
       };
     } catch (error: any) {
       console.error("Token creation failed:", error);

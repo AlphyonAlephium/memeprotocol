@@ -5,10 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Upload, Rocket, AlertCircle } from "lucide-react";
+import { Upload, Rocket, AlertCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { useWallet } from "@/contexts/WalletContext";
+import { useTokenCreation } from "@/hooks/useTokenCreation";
 
 const CreateToken = () => {
+  const { isConnected, address, balance, connectWallet, isConnecting } = useWallet();
+  const { createToken, isCreating } = useTokenCreation();
+  
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -16,9 +21,34 @@ const CreateToken = () => {
     image: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Token creation initiated! Please confirm in your wallet.");
+    
+    if (!isConnected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      const result = await createToken({
+        name: formData.name,
+        symbol: formData.symbol,
+        imageUrl: formData.image || "https://placeholder-image-url.com/token.png",
+        description: formData.description,
+      });
+
+      if (result.success) {
+        // Reset form
+        setFormData({
+          name: "",
+          symbol: "",
+          description: "",
+          image: "",
+        });
+      }
+    } catch (error) {
+      // Error already handled in useTokenCreation
+    }
   };
 
   return (
@@ -27,12 +57,32 @@ const CreateToken = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-neon-pink bg-clip-text text-transparent">
-              Launch Your Meme Token
-            </h1>
-            <p className="text-muted-foreground">
-              Create and launch your token on Sei's CLOB for just 20 SEI
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-neon-pink bg-clip-text text-transparent">
+                  Launch Your Meme Token
+                </h1>
+                <p className="text-muted-foreground">
+                  Create and launch your token on Sei's CLOB for just 20 SEI
+                </p>
+              </div>
+              {!isConnected ? (
+                <Button 
+                  onClick={connectWallet} 
+                  disabled={isConnecting}
+                  className="glow-effect-cyan"
+                >
+                  <Wallet className="w-4 h-4 mr-2" />
+                  {isConnecting ? "Connecting..." : "Connect Wallet"}
+                </Button>
+              ) : (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Connected</p>
+                  <p className="font-mono text-sm">{address?.slice(0, 8)}...{address?.slice(-6)}</p>
+                  <p className="text-accent font-bold">{balance} SEI</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -108,10 +158,10 @@ const CreateToken = () => {
                 <Button
                   type="submit"
                   className="w-full glow-effect text-lg h-12"
-                  disabled={!formData.name || !formData.symbol || !formData.description}
+                  disabled={!isConnected || !formData.name || !formData.symbol || !formData.description || isCreating}
                 >
                   <Rocket className="w-5 h-5 mr-2" />
-                  Create Token (20 SEI)
+                  {isCreating ? "Creating..." : isConnected ? "Create Token (20 SEI)" : "Connect Wallet to Create"}
                 </Button>
               </form>
             </Card>

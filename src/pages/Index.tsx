@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Rocket, TrendingUp, Zap, Shield, ArrowRight } from "lucide-react";
+import { MemeTokenAnimation } from "@/components/MemeTokenAnimation";
 
 const Index = () => {
   const features = [
@@ -41,21 +42,22 @@ const Index = () => {
       
       <main>
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-hero opacity-50" />
-          <div className="container mx-auto px-4 py-20 md:py-32 relative">
+        <section className="relative overflow-hidden min-h-[600px] flex items-center">
+          <MemeTokenAnimation />
+          <div className="absolute inset-0 bg-gradient-hero opacity-30" />
+          <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+              <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight animate-fade-in">
                 Launch Your
                 <span className="bg-gradient-to-r from-primary via-accent to-neon-pink bg-clip-text text-transparent">
                   {" "}Meme Empire{" "}
                 </span>
                 on Sei
               </h1>
-              <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-fade-in">
                 Create, trade, and dominate with the fastest meme token launchpad built on Sei's native CLOB
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
                 <Link to="/create">
                   <Button size="lg" className="glow-effect text-lg px-8 h-14">
                     <Rocket className="w-5 h-5 mr-2" />

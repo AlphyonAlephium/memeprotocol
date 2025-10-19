@@ -1,26 +1,38 @@
-# 🚀 Sei Token Factory - Windows Deployment Guide
+# 🚀 Sei Token Factory - Windows Deployment Guide (Smart Contract Only)
 
-This guide walks you through deploying your meme token factory to Sei testnet **using Windows with VS Code**.
+This guide walks you through setting up and deploying **ONLY the smart contract** on your local Windows machine with VS Code.
 
-## ⚠️ IMPORTANT: You Need ALL Contract Files
+## 📁 Step 0: Copy Contract Files to Your Local Machine
 
-**DO NOT** just copy `contract.rs`! You need the entire `contracts/token-factory` directory structure:
+You need to copy the `contracts/token-factory` directory from Lovable to your local machine.
+
+### Directory Structure to Copy:
 
 ```
-contracts/
-└── token-factory/
-    ├── Cargo.toml              # Rust dependencies
-    ├── .cargo/
-    │   └── config              # Build configuration
-    └── src/
-        ├── lib.rs              # Library entry point
-        ├── contract.rs         # Main contract logic
-        ├── error.rs            # Error definitions
-        ├── msg.rs              # Message types
-        └── state.rs            # State management
+token-factory/                  # Create this folder locally
+├── Cargo.toml                  # Copy from Lovable
+├── .cargo/
+│   └── config                  # Copy from Lovable
+└── src/
+    ├── lib.rs                  # Copy from Lovable
+    ├── contract.rs             # Copy from Lovable
+    ├── error.rs                # Copy from Lovable
+    ├── msg.rs                  # Copy from Lovable
+    └── state.rs                # Copy from Lovable
 ```
 
-**All these files are already in your Lovable project!** Just follow the steps below.
+### How to Copy:
+
+**Option A: Download as ZIP**
+1. In Lovable, click the file browser
+2. Right-click `contracts/token-factory` folder
+3. Download the folder
+4. Extract to `C:\my-sei-contracts\token-factory`
+
+**Option B: Manual Copy**
+1. Create folder: `C:\my-sei-contracts\token-factory`
+2. Copy each file from Lovable's file viewer to your local folder
+3. Keep the same directory structure shown above
 
 ---
 
@@ -81,33 +93,33 @@ seid keys show mywallet -a
 
 ---
 
-## Step 1: Open Project in VS Code
+## Step 1: Open Contract Folder in VS Code
 
 ```powershell
-# Navigate to your Lovable project directory
-cd C:\path\to\your\lovable-project
+# Navigate to your local contract directory
+cd C:\my-sei-contracts\token-factory
 
 # Open in VS Code
 code .
 ```
 
-**In VS Code Terminal (Ctrl + `)**, verify the contract files exist:
+**In VS Code Terminal (Ctrl + `)**, verify all files are present:
 
 ```powershell
-ls contracts\token-factory\src
+ls src
 # Should show: contract.rs, error.rs, lib.rs, msg.rs, state.rs
+
+ls Cargo.toml
+# Should exist
 ```
 
 ---
 
 ## Step 2: Build the Smart Contract
 
-In **VS Code Terminal**:
+In **VS Code Terminal** (make sure you're in `C:\my-sei-contracts\token-factory`):
 
 ```powershell
-# Navigate to contract directory
-cd contracts\token-factory
-
 # Build the contract
 cargo wasm
 
@@ -119,7 +131,7 @@ cargo wasm
 ```powershell
 # Make sure Docker Desktop is running!
 
-# Run optimizer (from contracts/token-factory directory)
+# Run optimizer
 docker run --rm -v "${PWD}:/code" `
   --mount type=volume,source=token_factory_cache,target=/code/target `
   --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry `
@@ -195,16 +207,18 @@ seid tx wasm instantiate 1235 `
 
 ---
 
-## Step 6: Update Frontend Configuration
+## Step 6: Update Frontend Configuration (Back in Lovable)
 
-In **VS Code**, edit `src/config/contracts.ts`:
+Once deployed, go back to your **Lovable project** and edit `src/config/contracts.ts`:
 
 ```typescript
 export const CONTRACTS = {
-  tokenFactory: "sei1YOUR_CONTRACT_ADDRESS_HERE", // Paste your address!
+  tokenFactory: "sei1YOUR_CONTRACT_ADDRESS_HERE", // Paste your deployed address!
   marketRegistrar: "sei1...", // Leave empty for now
 };
 ```
+
+Save the file in Lovable - your frontend will now connect to your deployed contract!
 
 ---
 

@@ -23,16 +23,20 @@ token-factory/                  # Create this folder locally
 
 ### How to Copy:
 
-**Option A: Download as ZIP**
-1. In Lovable, click the file browser
-2. Right-click `contracts/token-factory` folder
-3. Download the folder
-4. Extract to `C:\my-sei-contracts\token-factory`
+**Option A: GitHub Sync (Easiest)**
+1. In Lovable, click the GitHub button (top right)
+2. Connect and sync your project to GitHub
+3. Clone the repo on your local machine
+4. Copy the `contracts/token-factory` folder to `C:\my-sei-contracts\token-factory`
 
-**Option B: Manual Copy**
-1. Create folder: `C:\my-sei-contracts\token-factory`
-2. Copy each file from Lovable's file viewer to your local folder
-3. Keep the same directory structure shown above
+**Option B: Manual Copy from Dev Mode**
+1. In Lovable, enable Dev Mode (toggle in top left)
+2. Create local folder: `C:\my-sei-contracts\token-factory`
+3. For each file in `contracts/token-factory`:
+   - Open the file in Lovable
+   - Copy the content
+   - Create the same file locally and paste
+4. Keep the same directory structure shown above
 
 ---
 

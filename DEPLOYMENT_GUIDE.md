@@ -1,50 +1,34 @@
-# 🚀 Sei Token Factory - Windows Deployment Guide
+# 🚀 Sei Token Factory - Complete Deployment Guide
 
-This guide will walk you through deploying your meme token factory to Sei testnet using Windows and Visual Studio Code.
+This guide will walk you through deploying your meme token factory to Sei testnet.
 
 ## Prerequisites
 
 ### 1. Install Rust
-1. Download and run rustup-init.exe from: https://rustup.rs/
-2. Follow the installation prompts (press Enter to proceed with default installation)
-3. Open a new PowerShell window and run:
-```powershell
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
 rustup target add wasm32-unknown-unknown
 ```
-4. Verify installation:
-```powershell
-rustc --version
-cargo --version
-```
 
-### 2. Install Docker Desktop (for optimization)
-1. Download Docker Desktop for Windows: https://www.docker.com/products/docker-desktop
-2. Install and restart your computer
-3. Open Docker Desktop and ensure it's running
-4. Verify installation in PowerShell:
-```powershell
-docker --version
-```
+### 2. Install Docker (for optimization)
+- **Mac**: Download from https://www.docker.com/products/docker-desktop
+- **Linux**: `sudo apt-get install docker.io`
+- **Windows**: Download from https://www.docker.com/products/docker-desktop
 
 ### 3. Install Sei CLI
-1. Download the Windows seid binary from: https://github.com/sei-protocol/sei-chain/releases/download/v5.7.5/seid-5.7.5-windows-amd64.zip
-2. Extract the zip file
-3. Create a folder: `C:\sei\bin`
-4. Move `seid.exe` to `C:\sei\bin`
-5. Add to PATH:
-   - Press Windows key, search "Environment Variables"
-   - Click "Environment Variables" button
-   - Under "System variables", find "Path" and click "Edit"
-   - Click "New" and add: `C:\sei\bin`
-   - Click OK on all dialogs
-6. Open a new PowerShell window and verify:
-```powershell
+```bash
+# Download the latest seid binary
+wget https://github.com/sei-protocol/sei-chain/releases/download/v5.7.5/seid-5.7.5-linux-amd64.tar.gz
+tar -xzf seid-5.7.5-linux-amd64.tar.gz
+sudo mv seid /usr/local/bin/
+
+# Verify installation
 seid version
 ```
 
 ### 4. Create Wallet & Get Testnet Funds
-Open PowerShell and run:
-```powershell
+```bash
 # Create a new wallet
 seid keys add mywallet
 
@@ -58,17 +42,9 @@ seid keys show mywallet -a
 # Enter your address and request tokens
 ```
 
-### 5. Open Project in VS Code
-1. Open Visual Studio Code
-2. Click File > Open Folder
-3. Navigate to your project folder and select it
-4. Open the integrated terminal: View > Terminal (or press Ctrl+`)
-
 ## Step 1: Build the Smart Contract
 
-In VS Code's integrated terminal (PowerShell):
-
-```powershell
+```bash
 # Navigate to the contract directory
 cd contracts/token-factory
 
@@ -76,10 +52,9 @@ cd contracts/token-factory
 cargo wasm
 
 # Optimize the contract (reduces size for deployment)
-# Note: Make sure Docker Desktop is running!
-docker run --rm -v ${PWD}:/code `
-  --mount type=volume,source="token-factory_cache",target=/code/target `
-  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry `
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
   cosmwasm/optimizer:0.16.0
 ```
 
@@ -89,20 +64,17 @@ The optimized contract will be in `artifacts/token_factory.wasm`
 
 We need to deploy a CW20 base contract that our factory will use to create tokens.
 
-```powershell
-# Download the CW20 base contract (using PowerShell)
-Invoke-WebRequest -Uri "https://github.com/CosmWasm/cw-plus/releases/download/v1.1.0/cw20_base.wasm" -OutFile "cw20_base.wasm"
-
-# Navigate back to project root if needed
-cd ../..
+```bash
+# Download the CW20 base contract
+wget https://github.com/CosmWasm/cw-plus/releases/download/v1.1.0/cw20_base.wasm
 
 # Store the CW20 base contract
-seid tx wasm store cw20_base.wasm `
-  --from mywallet `
-  --chain-id atlantic-2 `
-  --node https://rpc.atlantic-2.seinetwork.io `
-  --gas 5000000 `
-  --gas-prices 0.1usei `
+seid tx wasm store cw20_base.wasm \
+  --from mywallet \
+  --chain-id atlantic-2 \
+  --node https://rpc.atlantic-2.seinetwork.io \
+  --gas 5000000 \
+  --gas-prices 0.1usei \
   --broadcast-mode block
 
 # Note the CODE_ID from the output (look for "code_id" in the logs)
@@ -111,14 +83,14 @@ seid tx wasm store cw20_base.wasm `
 
 ## Step 3: Deploy Token Factory Contract
 
-```powershell
+```bash
 # Store the token factory contract
-seid tx wasm store contracts/token-factory/artifacts/token_factory.wasm `
-  --from mywallet `
-  --chain-id atlantic-2 `
-  --node https://rpc.atlantic-2.seinetwork.io `
-  --gas 5000000 `
-  --gas-prices 0.1usei `
+seid tx wasm store artifacts/token_factory.wasm \
+  --from mywallet \
+  --chain-id atlantic-2 \
+  --node https://rpc.atlantic-2.seinetwork.io \
+  --gas 5000000 \
+  --gas-prices 0.1usei \
   --broadcast-mode block
 
 # Note the CODE_ID (different from CW20's code_id)
@@ -129,20 +101,17 @@ seid tx wasm store contracts/token-factory/artifacts/token_factory.wasm `
 
 Replace `CW20_CODE_ID` with the code_id from Step 2, and `FACTORY_CODE_ID` with the code_id from Step 3.
 
-```powershell
-# Get your wallet address first
-$WALLET_ADDRESS = seid keys show mywallet -a
-
-# Instantiate the factory (replace 1234 and 1235 with your actual code IDs)
-seid tx wasm instantiate FACTORY_CODE_ID `
-  '{\"cw20_code_id\":CW20_CODE_ID,\"creation_fee\":\"20000000\"}' `
-  --from mywallet `
-  --chain-id atlantic-2 `
-  --node https://rpc.atlantic-2.seinetwork.io `
-  --gas 500000 `
-  --gas-prices 0.1usei `
-  --label "Meme Token Factory" `
-  --admin $WALLET_ADDRESS `
+```bash
+# Instantiate the factory
+seid tx wasm instantiate FACTORY_CODE_ID \
+  '{"cw20_code_id":CW20_CODE_ID,"creation_fee":"20000000"}' \
+  --from mywallet \
+  --chain-id atlantic-2 \
+  --node https://rpc.atlantic-2.seinetwork.io \
+  --gas 500000 \
+  --gas-prices 0.1usei \
+  --label "Meme Token Factory" \
+  --admin $(seid keys show mywallet -a) \
   --broadcast-mode block
 
 # Note the CONTRACT_ADDRESS from the output
@@ -151,7 +120,7 @@ seid tx wasm instantiate FACTORY_CODE_ID `
 
 ## Step 5: Update Frontend Configuration
 
-In VS Code, open `src/config/contracts.ts` and update:
+Edit `src/config/contracts.ts`:
 
 ```typescript
 export const CONTRACTS = {
@@ -162,36 +131,31 @@ export const CONTRACTS = {
 
 ## Step 6: Test Your Deployment
 
-### Test from PowerShell:
-```powershell
-# Create a test token (replace YOUR_CONTRACT_ADDRESS)
-seid tx wasm execute YOUR_CONTRACT_ADDRESS `
-  '{\"create_token\":{\"name\":\"Test Doge\",\"symbol\":\"TDOGE\",\"total_supply\":\"1000000000\",\"image_url\":\"https://example.com/doge.png\",\"description\":\"Test token\"}}' `
-  --from mywallet `
-  --amount 20000000usei `
-  --chain-id atlantic-2 `
-  --node https://rpc.atlantic-2.seinetwork.io `
-  --gas 1000000 `
-  --gas-prices 0.1usei `
+### Test from CLI:
+```bash
+# Create a test token
+seid tx wasm execute YOUR_CONTRACT_ADDRESS \
+  '{"create_token":{"name":"Test Doge","symbol":"TDOGE","total_supply":"1000000000","image_url":"https://example.com/doge.png","description":"Test token"}}' \
+  --from mywallet \
+  --amount 20000000usei \
+  --chain-id atlantic-2 \
+  --node https://rpc.atlantic-2.seinetwork.io \
+  --gas 1000000 \
+  --gas-prices 0.1usei \
   --broadcast-mode block
 
 # Query all tokens
-seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
-  '{\"token_list\":{\"limit\":10}}' `
-  --chain-id atlantic-2 `
+seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS \
+  '{"token_list":{"limit":10}}' \
+  --chain-id atlantic-2 \
   --node https://rpc.atlantic-2.seinetwork.io
 ```
 
 ### Test from Frontend:
-1. In VS Code terminal, run the dev server:
-```powershell
-npm run dev
-```
-2. Open your browser to `http://localhost:8080`
-3. Connect your wallet extension (Compass, Fin, or Leap)
-4. Go to the "Create Token" page
-5. Fill out the form and click "Create Token"
-6. Approve the transaction in your wallet
+1. Connect your wallet extension (Compass, Fin, or Leap)
+2. Go to the "Create Token" page
+3. Fill out the form and click "Create Token"
+4. Approve the transaction in your wallet
 
 ## Troubleshooting
 
@@ -205,34 +169,27 @@ Make sure you have testnet SEI from the faucet
 Double-check your contract address in `src/config/contracts.ts`
 
 ### Contract deployment fails
-- Ensure Docker Desktop is running for optimization
+- Ensure Docker is running for optimization
 - Try building without optimization first: `cargo wasm`
-
-### PowerShell execution policy error
-If you get "cannot be loaded because running scripts is disabled", run:
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
 
 ## Useful Commands
 
-```powershell
+```bash
 # Check your balance
-$WALLET_ADDRESS = seid keys show mywallet -a
-seid query bank balances $WALLET_ADDRESS `
-  --chain-id atlantic-2 `
+seid query bank balances $(seid keys show mywallet -a) \
+  --chain-id atlantic-2 \
   --node https://rpc.atlantic-2.seinetwork.io
 
 # Query contract config
-seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
-  '{\"config\":{}}' `
-  --chain-id atlantic-2 `
+seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS \
+  '{"config":{}}' \
+  --chain-id atlantic-2 \
   --node https://rpc.atlantic-2.seinetwork.io
 
 # Query stats
-seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
-  '{\"stats\":{}}' `
-  --chain-id atlantic-2 `
+seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS \
+  '{"stats":{}}' \
+  --chain-id atlantic-2 \
   --node https://rpc.atlantic-2.seinetwork.io
 ```
 

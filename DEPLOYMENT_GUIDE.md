@@ -128,6 +128,9 @@ ls Cargo.toml
 In **VS Code Terminal** (make sure you're in `C:\my-sei-contracts\token-factory`):
 
 ```powershell
+# Delete the lock file (it will be regenerated with the correct version)
+Remove-Item Cargo.lock -ErrorAction SilentlyContinue
+
 # Build the contract
 cargo wasm
 
@@ -269,6 +272,13 @@ seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
 ### ❌ "insufficient funds"
 - Get more testnet SEI from faucet: https://atlantic-2.faucet.seinetwork.io/
 
+### ❌ "lock file version was found" error
+```powershell
+# Delete Cargo.lock and it will regenerate with correct version
+Remove-Item Cargo.lock
+cargo wasm
+```
+
 ### ❌ "linking with rust-lld failed" error
 This is a common WASM compilation issue. Try these steps in order:
 
@@ -281,7 +291,8 @@ rustup default 1.75.0
 rustup target remove wasm32-unknown-unknown
 rustup target add wasm32-unknown-unknown
 
-# 3. Clean and rebuild
+# 3. Delete Cargo.lock and clean rebuild
+Remove-Item Cargo.lock -ErrorAction SilentlyContinue
 cargo clean
 cargo wasm
 

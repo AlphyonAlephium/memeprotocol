@@ -51,9 +51,9 @@ Open PowerShell and run:
 Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile "$env:TEMP\rustup-init.exe"
 & "$env:TEMP\rustup-init.exe" -y
 
-# Restart PowerShell, then install stable Rust version known to work with CosmWasm
-rustup install 1.75.0
-rustup default 1.75.0
+# Restart PowerShell, then install Rust 1.82+ (required for edition2024 support)
+rustup install 1.82.0
+rustup default 1.82.0
 
 # Add WebAssembly target
 rustup target add wasm32-unknown-unknown
@@ -272,27 +272,38 @@ seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
 ### ❌ "insufficient funds"
 - Get more testnet SEI from faucet: https://atlantic-2.faucet.seinetwork.io/
 
+### ❌ "feature edition2024 is required" error
+```bash
+# Update to Rust 1.82+ which supports edition2024
+rustup install 1.82.0
+rustup default 1.82.0
+rustup target add wasm32-unknown-unknown
+rm -f Cargo.lock
+cargo clean
+cargo wasm
+```
+
 ### ❌ "lock file version was found" error
-```powershell
+```bash
 # Delete Cargo.lock and it will regenerate with correct version
-Remove-Item Cargo.lock
+rm -f Cargo.lock
 cargo wasm
 ```
 
 ### ❌ "linking with rust-lld failed" error
 This is a common WASM compilation issue. Try these steps in order:
 
-```powershell
-# 1. Use a stable Rust version (1.75.0 works well with CosmWasm)
-rustup install 1.75.0
-rustup default 1.75.0
+```bash
+# 1. Use Rust 1.82.0 (required for modern CosmWasm dependencies)
+rustup install 1.82.0
+rustup default 1.82.0
 
 # 2. Reinstall the WASM target
 rustup target remove wasm32-unknown-unknown
 rustup target add wasm32-unknown-unknown
 
 # 3. Delete Cargo.lock and clean rebuild
-Remove-Item Cargo.lock -ErrorAction SilentlyContinue
+rm -f Cargo.lock
 cargo clean
 cargo wasm
 

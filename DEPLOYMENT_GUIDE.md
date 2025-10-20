@@ -12,7 +12,7 @@ You need to copy the `contracts/token-factory` directory from Lovable to your lo
 token-factory/                  # Create this folder locally
 ├── Cargo.toml                  # Copy from Lovable
 ├── .cargo/
-│   └── config                  # Copy from Lovable
+│   └── config.toml             # Copy from Lovable
 └── src/
     ├── lib.rs                  # Copy from Lovable
     ├── contract.rs             # Copy from Lovable
@@ -264,6 +264,28 @@ seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
 
 ### ❌ "insufficient funds"
 - Get more testnet SEI from faucet: https://atlantic-2.faucet.seinetwork.io/
+
+### ❌ "linking with rust-lld failed" error
+This is a common WASM compilation issue. Fix with these steps:
+
+```powershell
+# 1. Reinstall the WASM target
+rustup target remove wasm32-unknown-unknown
+rustup target add wasm32-unknown-unknown
+
+# 2. Update Rust toolchain
+rustup update stable
+
+# 3. Clean and rebuild
+cargo clean
+cargo wasm
+
+# 4. If still fails, use Docker optimizer directly (skip cargo wasm)
+docker run --rm -v "${PWD}:/code" `
+  --mount type=volume,source=token_factory_cache,target=/code/target `
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry `
+  cosmwasm/optimizer:0.16.0
+```
 
 ### ❌ Build errors
 - Delete `target` folder and rebuild: `cargo clean && cargo wasm`

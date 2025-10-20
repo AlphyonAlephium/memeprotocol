@@ -1,10 +1,11 @@
 use cosmwasm_std::{
-    entry_point, to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
+    entry_point, to_json_binary, BankMsg, Binary, Coin, Deps, DepsMut, Env,
     MessageInfo, Reply, Response, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw20::{Cw20Coin, MinterResponse};
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
+use cw_storage_plus::Bound;
 
 use crate::error::ContractError;
 use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, StatsResponse, TokenInfoResponse, TokenListResponse};
@@ -281,7 +282,7 @@ fn query_token_list(
     let start = start_after.as_deref();
 
     let tokens: Vec<TokenInfoResponse> = TOKENS
-        .range(deps.storage, start.map(cosmwasm_std::Bound::exclusive), None, cosmwasm_std::Order::Ascending)
+        .range(deps.storage, start.map(Bound::exclusive), None, cosmwasm_std::Order::Ascending)
         .take(limit)
         .map(|item| {
             let (_, token) = item?;

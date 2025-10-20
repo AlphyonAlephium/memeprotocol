@@ -51,7 +51,11 @@ Open PowerShell and run:
 Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile "$env:TEMP\rustup-init.exe"
 & "$env:TEMP\rustup-init.exe" -y
 
-# Restart PowerShell, then add WebAssembly target
+# Restart PowerShell, then install stable Rust version known to work with CosmWasm
+rustup install 1.75.0
+rustup default 1.75.0
+
+# Add WebAssembly target
 rustup target add wasm32-unknown-unknown
 
 # Verify installation
@@ -266,21 +270,29 @@ seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
 - Get more testnet SEI from faucet: https://atlantic-2.faucet.seinetwork.io/
 
 ### ❌ "linking with rust-lld failed" error
-This is a common WASM compilation issue. Fix with these steps:
+This is a common WASM compilation issue. Try these steps in order:
 
 ```powershell
-# 1. Reinstall the WASM target
+# 1. Use a stable Rust version (1.75.0 works well with CosmWasm)
+rustup install 1.75.0
+rustup default 1.75.0
+
+# 2. Reinstall the WASM target
 rustup target remove wasm32-unknown-unknown
 rustup target add wasm32-unknown-unknown
-
-# 2. Update Rust toolchain
-rustup update stable
 
 # 3. Clean and rebuild
 cargo clean
 cargo wasm
 
-# 4. If still fails, use Docker optimizer directly (skip cargo wasm)
+# 4. If still fails, try Rust 1.73.0 instead
+rustup install 1.73.0
+rustup default 1.73.0
+rustup target add wasm32-unknown-unknown
+cargo clean
+cargo wasm
+
+# 5. Last resort: use Docker optimizer directly (skip cargo wasm)
 docker run --rm -v "${PWD}:/code" `
   --mount type=volume,source=token_factory_cache,target=/code/target `
   --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry `

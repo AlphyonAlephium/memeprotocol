@@ -22,4 +22,4 @@ cw-multi-test = "0.20"
 
 [patch.crates-io]
 # Pin base64ct to a pre-edition-2024 release to avoid requiring unstable Cargo features in the optimizer image
-base64ct = "=1.7.0"
+base64ct = "=1.7.3"

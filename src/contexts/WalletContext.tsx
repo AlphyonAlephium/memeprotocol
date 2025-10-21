@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice } from "@cosmjs/stargate";
 import { SEI_CONFIG } from "@/config/contracts";
 
 interface WalletContextType {
@@ -49,7 +50,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       const signingClient = await SigningCosmWasmClient.connectWithSigner(
         SEI_CONFIG.rpcEndpoint,
-        offlineSigner
+        offlineSigner,
+        {
+          gasPrice: GasPrice.fromString(SEI_CONFIG.gasPrice) as any,
+        }
       );
 
       setAddress(userAddress);

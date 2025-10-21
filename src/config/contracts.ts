@@ -3,6 +3,7 @@ export const SEI_CONFIG = {
   chainId: "atlantic-2", // Testnet - change to "pacific-1" for mainnet
   rpcEndpoint: "https://rpc.atlantic-2.seinetwork.io",
   restEndpoint: "https://rest.atlantic-2.seinetwork.io",
+  gasPrice: "0.1usei", // Gas price for transactions
 };
 
 // Contract Addresses (update these after deploying your contracts)

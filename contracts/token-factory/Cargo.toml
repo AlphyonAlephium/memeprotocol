@@ -17,5 +17,3 @@ schemars = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
 
-[dev-dependencies]
-cw-multi-test = "0.20"

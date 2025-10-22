@@ -13,7 +13,7 @@ export const CONTRACTS = {
 };
 
 // Platform owner address (contract deployer) - UPDATE THIS to your deployer address
-export const PLATFORM_OWNER = "sei1ynsc3ew96ppcufg264hz4srrpu5vc0rwkka47xshgkv7uhwdunfskue9cu"; // Set this to the address that deployed the contract
+export const PLATFORM_OWNER = "sei1phy94y7c2gy49fvu68zw77a7hhaaxjc0mf5xat"; // Set this to the address that deployed the contract
 
 // Token Creation Fee (in microSEI, 1 SEI = 1,000,000 microSEI)
 export const TOKEN_CREATION_FEE = "20000000"; // 20 SEI

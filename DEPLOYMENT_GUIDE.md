@@ -24,12 +24,14 @@ token-factory/                  # Create this folder locally
 ### How to Copy:
 
 **Option A: GitHub Sync (Easiest)**
+
 1. In Lovable, click the GitHub button (top right)
 2. Connect and sync your project to GitHub
 3. Clone the repo on your local machine
 4. Copy the `contracts/token-factory` folder to `C:\my-sei-contracts\token-factory`
 
 **Option B: Manual Copy from Dev Mode**
+
 1. In Lovable, enable Dev Mode (toggle in top left)
 2. Create local folder: `C:\my-sei-contracts\token-factory`
 3. For each file in `contracts/token-factory`:
@@ -178,12 +180,12 @@ seid tx wasm store cw20_base.wasm `
 
 ```powershell
 # Store token factory contract
-seid tx wasm store artifacts\token_factory.wasm `
-  --from mywallet `
-  --chain-id atlantic-2 `
-  --node https://rpc.atlantic-2.seinetwork.io `
-  --gas 5000000 `
-  --gas-prices 0.1usei `
+seid tx wasm store artifacts\token_factory.wasm \
+  --from mywallet \
+  --chain-id atlantic-2 \
+  --node https://rpc.atlantic-2.seinetwork.io \
+  --gas 5000000 \
+  --gas-prices 0.1usei \
   --broadcast-mode block
 
 # ⚠️ SAVE THIS CODE_ID too (different from CW20's)
@@ -259,20 +261,25 @@ seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
 ## Troubleshooting
 
 ### ❌ "cargo: command not found"
+
 - Restart PowerShell after installing Rust
 - Run: `rustup default stable`
 
-### ❌ "docker: command not found"  
+### ❌ "docker: command not found"
+
 - Ensure Docker Desktop is running
 - Restart VS Code after installing Docker
 
 ### ❌ "out of gas"
+
 - Increase gas: `--gas 2000000`
 
 ### ❌ "insufficient funds"
+
 - Get more testnet SEI from faucet: https://atlantic-2.faucet.seinetwork.io/
 
 ### ❌ "feature edition2024 is required" error
+
 ```bash
 # Update to Rust 1.82+ which supports edition2024
 rustup install 1.82.0
@@ -284,6 +291,7 @@ cargo wasm
 ```
 
 ### ❌ "lock file version was found" error
+
 ```bash
 # Delete Cargo.lock and it will regenerate with correct version
 rm -f Cargo.lock
@@ -291,6 +299,7 @@ cargo wasm
 ```
 
 ### ❌ "linking with rust-lld failed" error
+
 This is a common WASM compilation issue. Try these steps in order:
 
 ```bash
@@ -322,6 +331,7 @@ docker run --rm -v "${PWD}:/code" `
 ```
 
 ### ❌ Build errors
+
 - Delete `target` folder and rebuild: `cargo clean && cargo wasm`
 
 ---
@@ -356,6 +366,7 @@ seid query wasm contract-state smart YOUR_CONTRACT_ADDRESS `
 ## Production Checklist
 
 Before deploying to mainnet:
+
 - [ ] Test all functionality on testnet
 - [ ] Audit contract code
 - [ ] Set appropriate gas limits

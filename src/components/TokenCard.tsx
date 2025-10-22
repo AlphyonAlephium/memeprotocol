@@ -36,6 +36,18 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
 
         <div className="space-y-2">
           <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Price</span>
+            <span className="font-semibold text-primary">
+              ${(Math.random() * 0.01).toFixed(6)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">24h Change</span>
+            <span className={`font-semibold ${Math.random() > 0.5 ? 'text-green-500' : 'text-red-500'}`}>
+              {Math.random() > 0.5 ? '+' : '-'}{(Math.random() * 20).toFixed(2)}%
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Supply</span>
             <span className="font-semibold">
               {Number(token.total_supply).toLocaleString()}
@@ -51,7 +63,7 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
           </div>
         </div>
 
-        <Button className="w-full glow-effect-cyan">View Token</Button>
+        <Button className="w-full glow-effect-cyan">Buy</Button>
       </div>
     </Card>
   );

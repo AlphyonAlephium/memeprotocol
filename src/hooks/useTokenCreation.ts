@@ -29,7 +29,7 @@ export const useTokenCreation = () => {
       if (CONTRACTS.tokenFactory !== "sei1...") {
         // Prepare the contract execution message
         const msg = {
-          create_token: {
+          create_meme_token: {
             name: params.name,
             symbol: params.symbol,
             total_supply: DEFAULT_TOKEN_SUPPLY,

@@ -12,7 +12,7 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TokenInfo {
-    pub contract_address: Addr,
+    pub contract_address: String,
     pub symbol: String,
     pub name: String,
     pub creator: Addr,

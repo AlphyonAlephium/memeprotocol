@@ -146,7 +146,7 @@ pub fn execute_create_token(
 
     // Store temporary data for reply
     let temp_data = TokenInfo {
-        contract_address: deps.api.addr_validate("")?, // Will be set in reply
+        contract_address: "".to_string(), // Will be set in reply
         symbol: symbol.clone(),
         name: name.clone(),
         creator: info.sender.clone(),
@@ -222,7 +222,7 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
 
         for (symbol, mut token_info) in tokens {
             if token_info.contract_address.as_str().is_empty() {
-                token_info.contract_address = deps.api.addr_validate(&contract_address)?;
+                token_info.contract_address = contract_address.clone();
                 TOKENS.save(deps.storage, &symbol, &token_info)?;
                 
                 // Increment counter

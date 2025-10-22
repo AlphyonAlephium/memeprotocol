@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Token } from "@/hooks/useTokens";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface TokenCardProps {
   token: Token;
@@ -9,6 +10,8 @@ interface TokenCardProps {
 }
 
 export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
+  const navigate = useNavigate();
+
   return (
     <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all hover:glow-effect cursor-pointer">
       <div className="flex flex-col gap-4">
@@ -63,7 +66,12 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
           </div>
         </div>
 
-        <Button className="w-full glow-effect-cyan">Buy</Button>
+        <Button 
+          className="w-full glow-effect-cyan"
+          onClick={() => navigate(`/trade/${token.id}`)}
+        >
+          Buy
+        </Button>
       </div>
     </Card>
   );

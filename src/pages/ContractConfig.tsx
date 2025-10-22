@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useWallet } from "@/contexts/WalletContext";
 import { useContractConfig } from "@/hooks/useContractConfig";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -10,7 +9,6 @@ const ContractConfig = () => {
   const { address, isConnected, connectWallet } = useWallet();
   const { queryConfig, updateConfig, isLoading } = useContractConfig();
   const [config, setConfig] = useState<any>(null);
-  const [newOwner, setNewOwner] = useState("");
 
   const handleQueryConfig = async () => {
     try {
@@ -22,11 +20,11 @@ const ContractConfig = () => {
   };
 
   const handleUpdateConfig = async () => {
-    if (!newOwner) {
+    if (!address) {
       return;
     }
     try {
-      await updateConfig(newOwner);
+      await updateConfig(address);
       await handleQueryConfig(); // Refresh config
     } catch (error) {
       console.error(error);
@@ -86,25 +84,18 @@ const ContractConfig = () => {
             <CardHeader>
               <CardTitle>Update Contract Owner</CardTitle>
               <CardDescription>
-                Set the owner address to fix the "addr_validate errored: Input is empty" error
+                Set your wallet as the owner to fix the "addr_validate errored: Input is empty" error
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">New Owner Address</label>
-                <Input
-                  placeholder="sei1..."
-                  value={newOwner}
-                  onChange={(e) => setNewOwner(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Use your current address: <span className="font-mono">{address}</span>
-                </p>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Your wallet address will be set as owner:</p>
+                <p className="font-mono text-sm font-medium">{address}</p>
               </div>
 
               <Button
                 onClick={handleUpdateConfig}
-                disabled={isLoading || !newOwner}
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <>
@@ -112,7 +103,7 @@ const ContractConfig = () => {
                     Updating...
                   </>
                 ) : (
-                  "Update Owner"
+                  "Set Me as Owner"
                 )}
               </Button>
             </CardContent>

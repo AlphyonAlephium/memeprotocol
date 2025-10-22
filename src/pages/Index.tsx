@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Rocket, TrendingUp, Zap, Shield, ArrowRight } from "lucide-react";
 import { MemeTokenAnimation } from "@/components/MemeTokenAnimation";
+import { NewTokensSection } from "@/components/NewTokensSection";
+import { TrendingTokensSection } from "@/components/TrendingTokensSection";
 
 const Index = () => {
   const features = [
@@ -120,6 +122,12 @@ const Index = () => {
             })}
           </div>
         </section>
+
+        {/* Newly Launched Tokens */}
+        <NewTokensSection />
+
+        {/* Trending Tokens */}
+        <TrendingTokensSection />
 
         {/* CTA Section */}
         <section className="container mx-auto px-4 py-20">

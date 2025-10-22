@@ -9,6 +9,7 @@ interface TokenCreationParams {
   symbol: string;
   imageUrl: string;
   description: string;
+  supply: string;
 }
 
 export const useTokenCreation = () => {
@@ -61,7 +62,7 @@ export const useTokenCreation = () => {
           create_token: {
             name: params.name,
             symbol: params.symbol,
-            total_supply: DEFAULT_TOKEN_SUPPLY,
+            total_supply: params.supply,
             image_url: params.imageUrl,
             description: params.description,
           },
@@ -95,7 +96,7 @@ export const useTokenCreation = () => {
           image_url: params.imageUrl,
           contract_address: contractAddress,
           transaction_hash: transactionHash,
-          total_supply: DEFAULT_TOKEN_SUPPLY,
+          total_supply: params.supply,
         })
         .select()
         .single();

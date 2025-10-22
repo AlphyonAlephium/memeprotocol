@@ -21,6 +21,7 @@ const CreateToken = () => {
     symbol: "",
     description: "",
     image: "",
+    supply: "1000000000",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -89,6 +90,7 @@ const CreateToken = () => {
         symbol: formData.symbol,
         imageUrl: publicUrl,
         description: formData.description,
+        supply: formData.supply,
       });
 
       if (result.success) {
@@ -98,6 +100,7 @@ const CreateToken = () => {
           symbol: "",
           description: "",
           image: "",
+          supply: "1000000000",
         });
         setImageFile(null);
         if (fileInputRef.current) {
@@ -178,6 +181,25 @@ const CreateToken = () => {
                 </div>
 
                 <div>
+                  <Label htmlFor="supply">Total Supply</Label>
+                  <Input
+                    id="supply"
+                    type="number"
+                    placeholder="e.g., 1000000000"
+                    value={formData.supply}
+                    onChange={(e) =>
+                      setFormData({ ...formData, supply: e.target.value })
+                    }
+                    className="mt-2 bg-secondary border-border"
+                    min="1"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total number of tokens to create
+                  </p>
+                </div>
+
+                <div>
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
@@ -232,8 +254,7 @@ const CreateToken = () => {
                   <div className="text-sm">
                     <p className="font-semibold mb-1">Creation Fee: 20 SEI</p>
                     <p className="text-muted-foreground">
-                      This fee goes directly to the platform. Total supply of 1B tokens
-                      will be minted to your wallet.
+                      This fee goes directly to the platform. All tokens will be minted to your wallet.
                     </p>
                   </div>
                 </div>
@@ -280,7 +301,7 @@ const CreateToken = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-secondary rounded-lg p-4">
                     <p className="text-sm text-muted-foreground mb-1">Total Supply</p>
-                    <p className="text-lg font-bold">1,000,000,000</p>
+                    <p className="text-lg font-bold">{parseInt(formData.supply || "0").toLocaleString()}</p>
                   </div>
                   <div className="bg-secondary rounded-lg p-4">
                     <p className="text-sm text-muted-foreground mb-1">Blockchain</p>

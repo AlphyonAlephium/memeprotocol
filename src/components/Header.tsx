@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Rocket, TrendingUp, PlusCircle, User, Wallet, LogOut } from "lucide-react";
+import { Rocket, TrendingUp, PlusCircle, User, Wallet, LogOut, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 
 const Header = () => {
@@ -47,6 +47,15 @@ const Header = () => {
             >
               <User className="w-4 h-4" />
               Profile
+            </Button>
+          </Link>
+          <Link to="/contract-config">
+            <Button
+              variant={isActive("/contract-config") ? "secondary" : "ghost"}
+              className="gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Config
             </Button>
           </Link>
         </nav>

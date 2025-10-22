@@ -9,6 +9,7 @@ import Markets from "./pages/Markets";
 import CreateToken from "./pages/CreateToken";
 import Profile from "./pages/Profile";
 import Trade from "./pages/Trade";
+import ContractConfig from "./pages/ContractConfig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/create" element={<CreateToken />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/trade/:tokenId" element={<Trade />} />
+            <Route path="/contract-config" element={<ContractConfig />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

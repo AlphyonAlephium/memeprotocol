@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWallet } from "@/contexts/WalletContext";
-import { CONTRACTS, TOKEN_CREATION_FEE, DEFAULT_TOKEN_SUPPLY } from "@/config/contracts";
+import { CONTRACTS, TOKEN_CREATION_FEE, DEFAULT_TOKEN_SUPPLY, PLATFORM_OWNER } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,6 +27,35 @@ export const useTokenCreation = () => {
 
       // If contracts are deployed, interact with blockchain
       if (CONTRACTS.tokenFactory !== "sei1...") {
+        // First, ensure contract owner is set to platform owner
+        try {
+          const configQuery = await client.queryContractSmart(
+            CONTRACTS.tokenFactory,
+            { config: {} }
+          );
+          
+          // If owner is empty or invalid, update it
+          if (!configQuery.owner || configQuery.owner.trim() === "") {
+            console.log("Setting contract owner to platform owner...");
+            const updateMsg = {
+              update_config: {
+                owner: PLATFORM_OWNER,
+              },
+            };
+            
+            await client.execute(
+              address,
+              CONTRACTS.tokenFactory,
+              updateMsg,
+              "auto"
+            );
+            
+            toast.success("Contract configured successfully");
+          }
+        } catch (configError) {
+          console.error("Config check/update failed:", configError);
+          // Continue anyway - the actual token creation will fail with a better error if needed
+        }
         // Prepare the contract execution message
         const msg = {
           create_token: {

@@ -12,6 +12,9 @@ export const CONTRACTS = {
   marketRegistrar: "sei1...", // Your Market Registrar contract address
 };
 
+// Platform owner address (contract deployer) - UPDATE THIS to your deployer address
+export const PLATFORM_OWNER = "sei1ynsc3ew96ppcufg264hz4srrpu5vc0rwkka47xshgkv7uhwdunfskue9cu"; // Set this to the address that deployed the contract
+
 // Token Creation Fee (in microSEI, 1 SEI = 1,000,000 microSEI)
 export const TOKEN_CREATION_FEE = "20000000"; // 20 SEI
 

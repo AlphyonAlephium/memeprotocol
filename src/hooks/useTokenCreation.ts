@@ -28,7 +28,27 @@ export const useTokenCreation = () => {
 
       // If contracts are deployed, interact with blockchain
       if (CONTRACTS.tokenFactory !== "sei1...") {
-        // Skipping automatic owner update to avoid failures; owner is managed by deployer.
+        // Preflight check: validate contract config
+        try {
+          const configQuery = await client.queryContractSmart(
+            CONTRACTS.tokenFactory,
+            { config: {} }
+          );
+          
+          if (!configQuery.owner || configQuery.owner.trim() === "") {
+            throw new Error("Contract owner not configured. Please configure the factory contract first.");
+          }
+          
+          if (!configQuery.cw20_code_id || configQuery.cw20_code_id === 0) {
+            throw new Error("CW20 code ID not configured. Please set cw20_code_id in the factory contract.");
+          }
+          
+          console.log("Contract config validated:", configQuery);
+        } catch (configError: any) {
+          console.error("Config validation failed:", configError);
+          toast.error(configError.message || "Contract configuration invalid");
+          throw configError;
+        }
 
         const msg = {
           create_token: {

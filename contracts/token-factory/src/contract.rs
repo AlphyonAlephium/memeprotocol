@@ -126,12 +126,8 @@ pub fn execute_create_token(
             minter: info.sender.to_string(),
             cap: None,
         }),
-        marketing: Some(cw20_base::msg::InstantiateMarketingInfo {
-            project: Some(name.clone()),
-            description: Some(description),
-            marketing: Some(info.sender.to_string()),
-            logo: Some(cw20::Logo::Url(image_url)),
-        }),
+        marketing: None, // Avoid address validation issues from marketing field
+
     };
 
     let instantiate_token_msg = WasmMsg::Instantiate {

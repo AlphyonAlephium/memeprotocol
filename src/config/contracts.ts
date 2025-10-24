@@ -8,7 +8,7 @@ export const SEI_CONFIG = {
 
 // Contract Addresses (update these after deploying your contracts)
 export const CONTRACTS = {
-  tokenFactory: "sei1nvc9la4vek23e26na74e8xevu538ma9dcsyr4zdtdrff7t4ql9xsaj9a45", // Your deployed Token Factory contract address
+  tokenFactory: "sei1ckzuru7wh6c6ta44hhnty43a5e8e4mxjt3cjhfrjp0e37hy0m3nq4fzaqd", // Your deployed Token Factory contract address
   marketRegistrar: "sei1...", // Your Market Registrar contract address
 };
 

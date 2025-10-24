@@ -74,7 +74,14 @@ pub fn execute_create_token(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    // Validate payment
+    // ✅ ADD THIS: Validate sender address first
+    if info.sender.to_string().is_empty() {
+        return Err(ContractError::Std(cosmwasm_std::StdError::generic_err(
+            "Sender address cannot be empty"
+        )));
+    }
+
+    // Validate payment (your existing code)
     if info.funds.len() != 1 {
         return Err(ContractError::InvalidPayment {
             expected: config.creation_fee.to_string(),
@@ -104,6 +111,10 @@ pub fn execute_create_token(
         return Err(ContractError::InvalidTokenParams {});
     }
 
+    // ✅ VALIDATE ADDRESSES BEFORE USING THEM
+    let sender_addr = info.sender.to_string();
+    deps.api.addr_validate(&sender_addr)?;
+
     // Transfer fee to owner
     let transfer_msg = BankMsg::Send {
         to_address: config.owner.to_string(),
@@ -113,25 +124,24 @@ pub fn execute_create_token(
         }],
     };
 
-    // Instantiate CW20 token
+    // ✅ IMPROVED: Instantiate CW20 token with validated addresses
     let instantiate_msg = Cw20InstantiateMsg {
         name: name.clone(),
         symbol: symbol.clone(),
         decimals: 6,
         initial_balances: vec![Cw20Coin {
-            address: info.sender.to_string(),
+            address: sender_addr.clone(), // Use validated address
             amount: total_supply,
         }],
         mint: Some(MinterResponse {
-            minter: info.sender.to_string(),
+            minter: sender_addr.clone(), // Use validated address
             cap: None,
         }),
-        marketing: None, // Avoid address validation issues from marketing field
-
+        marketing: None,
     };
 
     let instantiate_token_msg = WasmMsg::Instantiate {
-        admin: None,  // No admin needed for CW20 tokens
+        admin: Some(sender_addr), // Use validated address
         code_id: config.cw20_code_id,
         msg: to_json_binary(&instantiate_msg)?,
         funds: vec![],
@@ -142,7 +152,7 @@ pub fn execute_create_token(
 
     // Store temporary data for reply
     let temp_data = TokenInfo {
-        contract_address: "".to_string(), // Will be set in reply
+        contract_address: "".to_string(),
         symbol: symbol.clone(),
         name: name.clone(),
         creator: info.sender.clone(),

@@ -74,14 +74,22 @@ pub fn execute_create_token(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    // ✅ ADD THIS: Validate sender address first
-    if info.sender.to_string().is_empty() {
+    // ✅ CRITICAL: Validate sender address first
+    let sender_addr = info.sender.to_string();
+    if sender_addr.is_empty() {
         return Err(ContractError::Std(cosmwasm_std::StdError::generic_err(
             "Sender address cannot be empty"
         )));
     }
 
-    // Validate payment (your existing code)
+    // ✅ Validate sender address format
+    deps.api.addr_validate(&sender_addr).map_err(|e| {
+        ContractError::Std(cosmwasm_std::StdError::generic_err(format!(
+            "Invalid sender address: {}", e
+        )))
+    })?;
+
+    // Validate payment
     if info.funds.len() != 1 {
         return Err(ContractError::InvalidPayment {
             expected: config.creation_fee.to_string(),
@@ -107,24 +115,28 @@ pub fn execute_create_token(
     }
 
     // Validate parameters
-    if name.is_empty() || symbol.is_empty() || total_supply.is_zero() {
+    if name.trim().is_empty() || symbol.trim().is_empty() || total_supply.is_zero() {
         return Err(ContractError::InvalidTokenParams {});
     }
 
-    // ✅ VALIDATE ADDRESSES BEFORE USING THEM
-    let sender_addr = info.sender.to_string();
-    deps.api.addr_validate(&sender_addr)?;
+    // ✅ Validate config owner address
+    let owner_addr = config.owner.to_string();
+    if owner_addr.is_empty() {
+        return Err(ContractError::Std(cosmwasm_std::StdError::generic_err(
+            "Owner address cannot be empty"
+        )));
+    }
 
     // Transfer fee to owner
     let transfer_msg = BankMsg::Send {
-        to_address: config.owner.to_string(),
+        to_address: owner_addr,
         amount: vec![Coin {
             denom: "usei".to_string(),
             amount: payment.amount,
         }],
     };
 
-    // ✅ IMPROVED: Instantiate CW20 token with validated addresses
+    // ✅ FIXED: CW20 instantiation with proper address validation
     let instantiate_msg = Cw20InstantiateMsg {
         name: name.clone(),
         symbol: symbol.clone(),
@@ -140,8 +152,9 @@ pub fn execute_create_token(
         marketing: None,
     };
 
+    // ✅ FIXED: WasmMsg with validated admin address
     let instantiate_token_msg = WasmMsg::Instantiate {
-        admin: Some(sender_addr), // Use validated address
+        admin: Some(sender_addr.clone()), // Use validated address
         code_id: config.cw20_code_id,
         msg: to_json_binary(&instantiate_msg)?,
         funds: vec![],
@@ -165,7 +178,7 @@ pub fn execute_create_token(
         .add_message(transfer_msg)
         .add_submessage(submsg)
         .add_attribute("method", "create_token")
-        .add_attribute("creator", info.sender)
+        .add_attribute("creator", sender_addr)
         .add_attribute("symbol", symbol)
         .add_attribute("name", name))
 }

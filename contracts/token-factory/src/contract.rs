@@ -131,7 +131,7 @@ pub fn execute_create_token(
     };
 
     let instantiate_token_msg = WasmMsg::Instantiate {
-        admin: Some(info.sender.to_string()),
+        admin: None,  // No admin needed for CW20 tokens
         code_id: config.cw20_code_id,
         msg: to_json_binary(&instantiate_msg)?,
         funds: vec![],

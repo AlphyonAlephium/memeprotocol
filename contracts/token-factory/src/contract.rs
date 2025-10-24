@@ -221,41 +221,73 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
             )))
         })?;
 
-        // Extract contract address from events
+        // ✅ ENHANCED: Extract contract address with better error handling
         let contract_address = res
             .events
             .iter()
             .find(|e| e.ty == "instantiate")
-            .and_then(|e| e.attributes.iter().find(|a| a.key == "_contract_address"))
+            .and_then(|e| {
+                e.attributes.iter().find(|a| {
+                    a.key == "_contract_address" || a.key == "contract_address"
+                })
+            })
             .map(|a| a.value.clone())
+            .filter(|addr| !addr.trim().is_empty()) // ← CRITICAL: Filter empty addresses
             .ok_or_else(|| {
                 ContractError::Std(cosmwasm_std::StdError::generic_err(
-                    "Could not find contract address in reply",
+                    "Could not find valid contract address in reply events",
                 ))
             })?;
 
-        // Update all tokens to set the contract address
+        // ✅ VALIDATE: Ensure the address is valid before using it
+        if contract_address.is_empty() {
+            return Err(ContractError::Std(cosmwasm_std::StdError::generic_err(
+                "Contract address cannot be empty",
+            )));
+        }
+
+        // ✅ VALIDATE: Check address format
+        deps.api.addr_validate(&contract_address).map_err(|e| {
+            ContractError::Std(cosmwasm_std::StdError::generic_err(format!(
+                "Invalid contract address format: {}", e
+            )))
+        })?;
+
+        // ✅ IMPROVED: Find the specific token that was just created
+        // Instead of iterating all tokens, find the one with empty contract_address
+        let mut updated = false;
         let tokens: Vec<_> = TOKENS
             .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
             .collect::<StdResult<Vec<_>>>()?;
 
         for (symbol, mut token_info) in tokens {
-            if token_info.contract_address.as_str().is_empty() {
+            if token_info.contract_address.is_empty() {
                 token_info.contract_address = contract_address.clone();
                 TOKENS.save(deps.storage, &symbol, &token_info)?;
                 
-                // Increment counter
+                // Increment counter only once
                 let count = TOKEN_COUNT.load(deps.storage)?;
                 TOKEN_COUNT.save(deps.storage, &(count + 1))?;
                 
+                updated = true;
                 break;
             }
         }
 
-        Ok(Response::new().add_attribute("token_address", contract_address))
+        // ✅ ERROR HANDLING: Ensure we actually updated a token
+        if !updated {
+            return Err(ContractError::Std(cosmwasm_std::StdError::generic_err(
+                "No token found to update with contract address",
+            )));
+        }
+
+        Ok(Response::new()
+            .add_attribute("method", "reply")
+            .add_attribute("token_address", contract_address)
+            .add_attribute("reply_id", msg.id.to_string()))
     } else {
         Err(ContractError::Std(cosmwasm_std::StdError::generic_err(
-            "Unknown reply id",
+            format!("Unknown reply id: {}", msg.id)
         )))
     }
 }

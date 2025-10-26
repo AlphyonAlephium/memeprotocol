@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useWallet } from "@/contexts/WalletContext";
-import { CONTRACTS, TOKEN_CREATION_FEE, DEFAULT_TOKEN_SUPPLY, PLATFORM_OWNER } from "@/config/contracts";
+import { CONTRACTS, TOKEN_CREATION_FEE, DEFAULT_TOKEN_SUPPLY, PLATFORM_OWNER, SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { GasPrice, calculateFee } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
   name: string;
@@ -37,11 +38,9 @@ export const useTokenCreation = () => {
           },
         };
 
-        // Execute contract with explicit fee (2 SEI for transaction fee)
-        const fee = {
-          amount: [{ denom: "usei", amount: "2000000" }], // 2 SEI for gas
-          gas: "2000000", // High gas limit to ensure transaction succeeds
-        };
+        // Compute fee from chain gas price to satisfy min gas price
+        const gasLimit = 500000;
+        const fee = calculateFee(gasLimit, GasPrice.fromString(SEI_CONFIG.gasPrice));
 
         const result = await client.execute(
           address,
@@ -49,7 +48,7 @@ export const useTokenCreation = () => {
           msg,
           fee,
           "",
-          [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee
+          [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee to contract
         );
 
         // Parse the new token contract address from logs

@@ -1,8 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-// Import the correct helper function from the sei-js library
-import { getSigningCosmWasmClient } from "@sei-js/cosmjs";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { SigningCosmWasmClient, CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SEI_CONFIG } from "@/config/contracts";
+
+// --- CORE FIX: IMPORT ALL NECESSARY COMPONENTS ---
+import { Registry } from "@cosmjs/proto-signing";
+import { defaultRegistryTypes, AminoTypes, GasPrice } from "@cosmjs/stargate";
+import { cosmwasmProtoRegistry, wasmTypes } from "@cosmjs/cosmwasm-stargate";
 
 // ... (Interface and context creation are the same)
 interface WalletContextType {
@@ -26,22 +29,32 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsConnecting(true);
     try {
       const wallet = window.compass || window.fin || window.leap;
-      if (!wallet) {
-        throw new Error("No Sei wallet detected!");
-      }
+      if (!wallet) throw new Error("No Sei wallet detected!");
 
       await wallet.enable(SEI_CONFIG.chainId);
       const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
-      // --- THE CORE FIX ---
-      // Use the official `getSigningCosmWasmClient` helper from `@sei-js/cosmjs`.
-      // We pass the RPC endpoint and the signer. We will handle the fee options in the transaction itself.
-      console.log("✅ Creating client with the official @sei-js/cosmjs helper...");
-      const signingClient = await getSigningCosmWasmClient(SEI_CONFIG.rpcEndpoint, offlineSigner);
-      console.log("✅ Client created successfully.");
-      // --- END OF CORE FIX ---
+      // --- THE DEFINITIVE CLIENT CREATION ---
+
+      // 1. Create a registry and add all the default and CosmWasm types.
+      // This is what solves the "Unregistered type url" error.
+      const registry = new Registry([...defaultRegistryTypes, ...cosmwasmProtoRegistry]);
+
+      // 2. Create Amino types for wallet compatibility.
+      const aminoTypes = new AminoTypes({ ...wasmTypes });
+
+      // 3. Create the client with all the necessary options.
+      console.log("✅ Creating client with full, manual configuration...");
+      const signingClient = await SigningCosmWasmClient.connectWithSigner(SEI_CONFIG.rpcEndpoint, offlineSigner, {
+        registry: registry,
+        aminoTypes: aminoTypes,
+        gasPrice: GasPrice.fromString("3.5usei"), // Set the correct gas price here.
+      });
+      console.log("✅ Client created successfully. All types registered.");
+
+      // --- END OF DEFINITIVE FIX ---
 
       setAddress(userAddress);
       setClient(signingClient);
@@ -85,9 +98,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
 export const useWallet = () => {
   const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error("useWallet must be used within a WalletProvider");
-  }
+  if (context === undefined) throw new Error("useWallet must be used within a WalletProvider");
   return context;
 };
 

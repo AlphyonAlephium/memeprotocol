@@ -3,6 +3,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logs, StdFee } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
   name: string;
@@ -38,25 +39,38 @@ export const useTokenCreation = () => {
 
         const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
 
-        // The client is now fully configured. We can just pass "auto" for the fee.
-        // It will correctly use the 3.5usei gas price to calculate the fee.
-        const fee = {
-          amount: [{ denom: "usei", amount: "10000000" }],
-          gas: "3000000",
+        // --- THE RAW, EXPLICIT FEE OBJECT ---
+        // We will not use any helpers. We will build the fee object manually.
+
+        const gasLimit = "3000000"; // The gas limit the network seems to require.
+        const feeAmount = "10500000"; // The exact fee amount the network required in the last error.
+
+        const explicitFee: StdFee = {
+          amount: [
+            {
+              denom: "usei",
+              amount: feeAmount,
+            },
+          ],
+          gas: gasLimit,
         };
 
-        console.log(`✅ Executing token creation with 10 SEI fee...`);
-        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
+        console.log(`✅ EXECUTING WITH RAW FEE OBJECT: ${JSON.stringify(explicitFee)}`);
 
-        contractAddress = result.logs[0]?.events
-          .find(e => e.type === "wasm")
-          ?.attributes.find(a => a.key === "new_token_contract")?.value || null;
+        // Use the client from the context, but pass it the undeniable, raw fee object.
+        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, explicitFee, undefined, factoryFunds);
+
+        if (result.code !== 0) {
+          throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
+        }
+
+        const parsedLogs = logs.parseRawLog(result.rawLog);
+        contractAddress = logs.findAttribute(parsedLogs, "wasm", "new_token_contract").value;
         transactionHash = result.transactionHash;
 
         console.log("✅ Token created successfully:", { contractAddress, transactionHash });
       }
 
-      // ... (rest of function is the same)
       const { data: tokenData, error: dbError } = await supabase
         .from("tokens")
         .insert({

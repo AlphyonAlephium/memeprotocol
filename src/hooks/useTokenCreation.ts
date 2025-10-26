@@ -3,7 +3,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { logs, StdFee } from "@cosmjs/stargate";
+import { StdFee } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
   name: string;
@@ -57,15 +57,14 @@ export const useTokenCreation = () => {
 
         console.log(`✅ EXECUTING WITH RAW FEE OBJECT: ${JSON.stringify(explicitFee)}`);
 
-        // Use the client from the context, but pass it the undeniable, raw fee object.
         const result = await client.execute(address, CONTRACTS.tokenFactory, msg, explicitFee, undefined, factoryFunds);
 
-        if (result.code !== 0) {
-          throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
+        // Extract contract address from events
+        const wasmEvent = result.events.find(e => e.type === "wasm");
+        if (wasmEvent) {
+          const addressAttr = wasmEvent.attributes.find(a => a.key === "new_token_contract");
+          contractAddress = addressAttr?.value || null;
         }
-
-        const parsedLogs = logs.parseRawLog(result.rawLog);
-        contractAddress = logs.findAttribute(parsedLogs, "wasm", "new_token_contract").value;
         transactionHash = result.transactionHash;
 
         console.log("✅ Token created successfully:", { contractAddress, transactionHash });

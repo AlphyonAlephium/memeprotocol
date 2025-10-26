@@ -1,15 +1,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { SigningCosmWasmClient, CosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice, Registry, AminoTypes, defaultRegistryTypes } from "@cosmjs/stargate";
-import { cosmwasmProtoRegistry, wasmTypes } from "@cosmjs/cosmwasm-stargate";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice } from "@cosmjs/stargate";
 import { SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 
-// This context uses only official @cosmjs libraries
-
 interface WalletContextType {
-  /* ... same as before ... */
+  address: string | null;
+  isConnected: boolean;
+  client: SigningCosmWasmClient | null;
+  balance: string | null;
+  connectWallet: () => Promise<void>;
+  disconnectWallet: () => void;
+  isConnecting: boolean;
 }
+
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
@@ -29,19 +33,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
-      // Build a PURE CosmJS client from scratch
-      const registry = new Registry([...defaultRegistryTypes, ...cosmwasmProtoRegistry]);
-      const aminoTypes = new AminoTypes({ ...wasmTypes });
-      const clientOptions: CosmWasmClientOptions = {
-        gasPrice: GasPrice.fromString("3.5usei"),
-      };
-
-      console.log("✅ Creating a PURE CosmJS client. No @sei-js libraries are being used.");
-      const signingClient = await SigningCosmWasmClient.connectWithSigner(SEI_CONFIG.rpcEndpoint, offlineSigner, {
-        registry,
-        aminoTypes,
-        ...clientOptions,
-      });
+      const signingClient = await SigningCosmWasmClient.connectWithSigner(
+        SEI_CONFIG.rpcEndpoint,
+        offlineSigner,
+        {
+          gasPrice: GasPrice.fromString("3.5usei"),
+        }
+      );
 
       setAddress(userAddress);
       setClient(signingClient);
@@ -58,10 +56,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const disconnectWallet = () => {
-    /* ... same as before ... */
+    setAddress(null);
+    setClient(null);
+    setBalance(null);
+    localStorage.removeItem("wallet_connected");
+    toast.success("Wallet disconnected");
   };
+
   useEffect(() => {
-    /* ... same as before ... */
+    const wasConnected = localStorage.getItem("wallet_connected");
+    if (wasConnected === "true") {
+      connectWallet().catch(console.error);
+    }
   }, []);
 
   return (
@@ -74,8 +80,17 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useWallet = () => {
-  /* ... same as before ... */
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error("useWallet must be used within WalletProvider");
+  }
+  return context;
 };
+
 declare global {
-  /* ... same as before ... */
+  interface Window {
+    compass?: any;
+    fin?: any;
+    leap?: any;
+  }
 }

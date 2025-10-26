@@ -3,8 +3,8 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE, SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-// Import the calculateFee function
-import { calculateFee } from "@cosmjs/stargate";
+import { calculateFee, GasPrice } from "@cosmjs/stargate";
+import { toUtf8 } from "@cosmjs/encoding";
 
 interface TokenCreationParams {
   name: string;
@@ -15,12 +15,10 @@ interface TokenCreationParams {
 }
 
 export const useTokenCreation = () => {
-  // Get the original client from the context
   const { client, address } = useWallet();
   const [isCreating, setIsCreating] = useState(false);
 
   const createToken = async (params: TokenCreationParams) => {
-    // We now use the client from the context again.
     if (!client || !address) {
       throw new Error("Wallet not connected");
     }
@@ -31,6 +29,9 @@ export const useTokenCreation = () => {
       let transactionHash = null;
 
       if (CONTRACTS.tokenFactory !== "sei1...") {
+        // --- THE MANUAL SIGN-AND-BROADCAST STRATEGY ---
+
+        // 1. Manually construct the execution message.
         const msg = {
           create_token: {
             name: params.name,
@@ -40,38 +41,45 @@ export const useTokenCreation = () => {
           },
         };
 
-        // --- THE FINAL STRATEGY: MANUAL FEE CALCULATION ---
+        const executeContractMsg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: address,
+            contract: CONTRACTS.tokenFactory,
+            msg: toUtf8(JSON.stringify(msg)),
+            funds: [{ denom: "usei", amount: TOKEN_CREATION_FEE }],
+          },
+        };
 
-        // 1. Define a generous gas limit.
+        // 2. Manually construct the fee object with absolute precision.
         const gasLimit = 2000000;
-
-        // 2. Define the correct gas price.
         const gasPrice = "3.5usei";
+        const fee = calculateFee(gasLimit, gasPrice);
 
-        // 3. Use the `calculateFee` helper function to create the fee object.
-        // This is the most reliable way to ensure the fee is constructed correctly.
-        const networkFee = calculateFee(gasLimit, gasPrice);
+        console.log("✅ Bypassing .execute(). Manually signing and broadcasting with fee:", JSON.stringify(fee));
+        console.log("✅ Message being sent:", JSON.stringify(executeContractMsg));
 
-        // 4. Define the funds that go to the contract.
-        const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
-
-        console.log(`✅ Executing with manually calculated fee: ${JSON.stringify(networkFee)}`);
-
-        // 5. Use the ORIGINAL client from the context to execute.
-        const result = await client.execute(
+        // 3. Use the low-level signAndBroadcast method.
+        // This gives the library no room to override our settings.
+        const result = await client.signAndBroadcast(
           address,
-          CONTRACTS.tokenFactory,
-          msg,
-          networkFee, // Pass the correctly calculated fee object
-          undefined,  // Memo
-          factoryFunds
+          [executeContractMsg], // The message must be in an array
+          fee,
+          "Create token via manual broadcast" // Memo
         );
-
+        
         // --- END OF THE FIX ---
 
-        contractAddress = result.logs[0]?.events
-          .find((e) => e.type === "wasm")
-          ?.attributes.find((a) => a.key === "new_token_contract")?.value || null;
+        // Check if the transaction failed at the broadcast level
+        if (result.code !== 0) {
+            throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
+        }
+
+        // Parse logs from the successful transaction
+        const logs = JSON.parse(result.rawLog || '[]');
+        contractAddress = logs[0]?.events
+          .find((e: any) => e.type === "wasm")
+          ?.attributes.find((a: any) => a.key === "new_token_contract")?.value || null;
         
         transactionHash = result.transactionHash;
         

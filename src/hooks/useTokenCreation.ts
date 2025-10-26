@@ -3,8 +3,8 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE, SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateFee, GasPrice } from "@cosmjs/stargate";
-import { toUtf8 } from "@cosmjs/encoding";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice, calculateFee } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
   name: string;
@@ -15,12 +15,17 @@ interface TokenCreationParams {
 }
 
 export const useTokenCreation = () => {
-  const { client, address } = useWallet();
+  const { address } = useWallet();
   const [isCreating, setIsCreating] = useState(false);
 
   const createToken = async (params: TokenCreationParams) => {
-    if (!client || !address) {
+    if (!address) {
       throw new Error("Wallet not connected");
+    }
+
+    const wallet = window.compass || window.fin || window.leap;
+    if (!wallet) {
+      throw new Error("Wallet provider (e.g., Compass) not found on window object.");
     }
 
     setIsCreating(true);
@@ -29,9 +34,6 @@ export const useTokenCreation = () => {
       let transactionHash = null;
 
       if (CONTRACTS.tokenFactory !== "sei1...") {
-        // --- THE MANUAL SIGN-AND-BROADCAST STRATEGY ---
-
-        // 1. Manually construct the execution message.
         const msg = {
           create_token: {
             name: params.name,
@@ -41,41 +43,46 @@ export const useTokenCreation = () => {
           },
         };
 
-        const executeContractMsg = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: {
-            sender: address,
-            contract: CONTRACTS.tokenFactory,
-            msg: toUtf8(JSON.stringify(msg)),
-            funds: [{ denom: "usei", amount: TOKEN_CREATION_FEE }],
-          },
-        };
+        // --- THE STABLE SURGICAL STRIKE (V9) ---
+        
+        // 1. Get a fresh signer directly from the wallet extension.
+        const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
 
-        // 2. Manually construct the fee object with absolute precision.
+        // 2. Create a NEW, temporary client.
+        console.log("✅ Creating a temporary client...");
+        const tempClient = await SigningCosmWasmClient.connectWithSigner(
+          SEI_CONFIG.rpcEndpoint,
+          offlineSigner,
+          {
+            // We still provide the gas price, even if it's sometimes ignored.
+            gasPrice: GasPrice.fromString("3.5usei")
+          }
+        );
+        console.log("✅ Temporary client created successfully.");
+
+        // 3. Manually calculate the fee to prevent any miscalculation.
         const gasLimit = 2000000;
-        const gasPrice = "3.5usei";
-        const fee = calculateFee(gasLimit, gasPrice);
+        const fee = calculateFee(gasLimit, "3.5usei");
+        const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
 
-        console.log("✅ Bypassing .execute(). Manually signing and broadcasting with fee:", JSON.stringify(fee));
-        console.log("✅ Message being sent:", JSON.stringify(executeContractMsg));
-
-        // 3. Use the low-level signAndBroadcast method.
-        // This gives the library no room to override our settings.
-        const result = await client.signAndBroadcast(
+        // 4. Use the NEW temporary client to execute the transaction with the manual fee.
+        console.log(`✅ Executing with temporary client and manual fee: ${JSON.stringify(fee)}`);
+        const result = await tempClient.execute(
           address,
-          [executeContractMsg], // The message must be in an array
-          fee,
-          "Create token via manual broadcast" // Memo
+          CONTRACTS.tokenFactory,
+          msg,
+          fee,        // Pass the manually calculated fee object
+          undefined,  // Memo
+          factoryFunds
         );
         
         // --- END OF THE FIX ---
 
-        // Check if the transaction failed at the broadcast level
+        // Check for transaction failure
         if (result.code !== 0) {
             throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
         }
 
-        // Parse logs from the successful transaction
         const logs = JSON.parse(result.rawLog || '[]');
         contractAddress = logs[0]?.events
           .find((e: any) => e.type === "wasm")
@@ -110,3 +117,12 @@ export const useTokenCreation = () => {
     isCreating,
   };
 };
+
+// Type declarations for wallet extensions
+declare global {
+  interface Window {
+    compass?: any;
+    fin?: any;
+    leap?: any;
+  }
+}

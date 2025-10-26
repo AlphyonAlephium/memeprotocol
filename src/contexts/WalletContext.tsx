@@ -1,13 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { SigningCosmWasmClient, CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SEI_CONFIG } from "@/config/contracts";
 
-// --- CORE FIX: IMPORT ALL NECESSARY COMPONENTS ---
+// --- THE DEFINITIVE IMPORTS ---
 import { Registry } from "@cosmjs/proto-signing";
 import { defaultRegistryTypes, AminoTypes, GasPrice } from "@cosmjs/stargate";
 import { cosmwasmProtoRegistry, wasmTypes } from "@cosmjs/cosmwasm-stargate";
+// This is the missing piece: the Amino types specific to the Sei network.
+import { seiprotocol } from "@sei-js/proto";
 
-// ... (Interface and context creation are the same)
 interface WalletContextType {
   address: string | null;
   isConnected: boolean;
@@ -36,25 +37,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
-      // --- THE DEFINITIVE CLIENT CREATION ---
+      // --- THE COMPLETE AND CORRECT CLIENT CREATION ---
 
-      // 1. Create a registry and add all the default and CosmWasm types.
-      // This is what solves the "Unregistered type url" error.
+      // 1. Create a registry with all Protobuf types (default + cosmwasm).
       const registry = new Registry([...defaultRegistryTypes, ...cosmwasmProtoRegistry]);
 
-      // 2. Create Amino types for wallet compatibility.
-      const aminoTypes = new AminoTypes({ ...wasmTypes });
+      // 2. Create an Amino type converter that understands both CosmWasm and Sei messages.
+      const aminoTypes = new AminoTypes({
+        ...wasmTypes,
+        ...seiprotocol.seichain.dex.AminoConverter,
+        ...seiprotocol.seichain.oracle.AminoConverter,
+        // Add other Sei modules here if needed in the future
+      });
 
-      // 3. Create the client with all the necessary options.
-      console.log("✅ Creating client with full, manual configuration...");
+      // 3. Create the client with the complete registry, complete amino types, and correct gas price.
+      console.log("✅ Creating client with full Sei-compatible configuration...");
       const signingClient = await SigningCosmWasmClient.connectWithSigner(SEI_CONFIG.rpcEndpoint, offlineSigner, {
         registry: registry,
         aminoTypes: aminoTypes,
-        gasPrice: GasPrice.fromString("3.5usei"), // Set the correct gas price here.
+        gasPrice: GasPrice.fromString("3.5usei"),
       });
-      console.log("✅ Client created successfully. All types registered.");
+      console.log("✅ Sei-compatible client created successfully.");
 
-      // --- END OF DEFINITIVE FIX ---
+      // --- END OF FIX ---
 
       setAddress(userAddress);
       setClient(signingClient);
@@ -65,6 +70,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("wallet_connected", "true");
     } catch (error: any) {
       console.error("Failed to connect wallet:", error);
+      toast.error(`Wallet Connection Failed: ${error.message}`);
       throw error;
     } finally {
       setIsConnecting(false);

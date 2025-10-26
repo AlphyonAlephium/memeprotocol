@@ -52,12 +52,15 @@ export const useTokenCreation = () => {
           },
         };
 
-        // 2. Manually construct the fee object with absolute precision.
+        // 2. Manually construct the fee object with exact values needed
         const gasLimit = 2000000;
-        const fee = calculateFee(gasLimit, "3.5usei");
+        const fee = {
+          amount: [{ denom: "usei", amount: "7000000" }], // 2M gas * 3.5 = 7M usei
+          gas: gasLimit.toString(),
+        };
 
         console.log(
-          "✅ V11 FINAL: Bypassing .execute(). Manually signing and broadcasting with fee:",
+          "✅ V12: Manual fee construction with exact values:",
           JSON.stringify(fee),
         );
 

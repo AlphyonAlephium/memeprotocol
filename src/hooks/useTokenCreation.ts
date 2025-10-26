@@ -1,59 +1,65 @@
-import { useState } from "react";
-import { useWallet } from "@/contexts/WalletContext";
-import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { logs, StdFee } from "@cosmjs/stargate";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+// We now import EVERYTHING from the one, correct library.
+import { getSigningCosmWasmClient } from "@sei-js/core";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { SEI_CONFIG } from "@/config/contracts";
 
-// No more @sei-js imports!
-
-interface TokenCreationParams {
-  /* ... same as before ... */
+interface WalletContextType {
+  address: string | null;
+  isConnected: boolean;
+  client: SigningCosmWasmClient | null;
+  balance: string | null;
+  connectWallet: () => Promise<void>;
+  disconnectWallet: () => void;
+  isConnecting: boolean;
 }
+const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-export const useTokenCreation = () => {
-  const { client, address } = useWallet();
-  const [isCreating, setIsCreating] = useState(false);
+export const WalletProvider = ({ children }: { children: ReactNode }) => {
+  const [address, setAddress] = useState<string | null>(null);
+  const [client, setClient] = useState<SigningCosmWasmClient | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
-  const createToken = async (params: TokenCreationParams) => {
-    if (!client || !address) throw new Error("Wallet not connected");
-
-    setIsCreating(true);
+  const connectWallet = async () => {
+    setIsConnecting(true);
     try {
-      const msg = {
-        create_token: {
-          name: params.name,
-          symbol: params.symbol,
-          total_supply: params.supply,
-          logo_url: params.imageUrl,
-        },
-      };
-      const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
-      const fee: StdFee = {
-        amount: [{ denom: "usei", amount: "10500000" }],
-        gas: "3000000",
-      };
+      const wallet = window.compass || window.fin || window.leap;
+      if (!wallet) throw new Error("No Sei wallet detected!");
 
-      console.log(`✅ FINAL ATTEMPT: Executing with raw fee: ${JSON.stringify(fee)}`);
-      const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
+      // The rest of this function is now simplified, as the library handles the complexity.
+      const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
+      const accounts = await offlineSigner.getAccounts();
+      const userAddress = accounts[0].address;
 
-      if (result.code !== 0) throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
+      console.log("✅ Using official @sei-js/core helper to create client...");
+      const signingClient = await getSigningCosmWasmClient(SEI_CONFIG.rpcEndpoint, offlineSigner);
+      
+      setAddress(userAddress);
+      setClient(signingClient);
 
-      const parsedLogs = logs.parseRawLog(result.rawLog);
-      const contractAddress = logs.findAttribute(parsedLogs, "wasm", "new_token_contract").value;
-      const transactionHash = result.transactionHash;
-
-      console.log("✅ Token created successfully:", { contractAddress, transactionHash });
-
-      // ... (rest of the function is the same)
+      const bal = await signingClient.getBalance(userAddress, "usei");
+      setBalance((Number(bal.amount) / 1_000_000).toFixed(2));
+      localStorage.setItem("wallet_connected", "true");
     } catch (error: any) {
-      console.error("Token creation failed:", error);
-      toast.error(error.message || "Failed to create token");
+      console.error("Failed to connect wallet:", error);
+      toast.error(`Wallet Connection Failed: ${error.message}`);
       throw error;
     } finally {
-      setIsCreating(false);
+      setIsConnecting(false);
     }
   };
 
-  return { createToken, isCreating };
+  const disconnectWallet = () => { /* ... same as before ... */ };
+  useEffect(() => { /* ... same as before ... */ }, []);
+
+  return (
+    <WalletContext.Provider value={{ address, isConnected: !!address, client, balance, connectWallet, disconnectWallet, isConnecting }}>
+      {children}
+    </Wallet.Provider>
+  );
 };
+
+export const useWallet = () => { /* ... same as before ... */ };
+
+declare global { /* ... same as before ... */ }

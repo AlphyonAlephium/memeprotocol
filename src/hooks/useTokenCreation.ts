@@ -3,7 +3,6 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateFee } from "@cosmjs/stargate";
 import { logs } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
@@ -15,7 +14,6 @@ interface TokenCreationParams {
 }
 
 export const useTokenCreation = () => {
-  // We now trust the client from the context again.
   const { client, address } = useWallet();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -39,15 +37,12 @@ export const useTokenCreation = () => {
           },
         };
 
-        // --- THE FINAL, CLEAN STRATEGY ---
-        // 1. Manually calculate the fee with the correct, proven values.
-        const fee = calculateFee(2000000, "3.5usei");
         const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
 
-        console.log(`✅ Executing with correctly built client and fee: ${JSON.stringify(fee)}`);
-
-        // 2. Use the new, trusted client to execute the transaction.
-        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
+        // The client is now fully configured. We can just pass "auto" for the fee.
+        // It will correctly use the 3.5usei gas price to calculate the fee.
+        console.log(`✅ Executing with fully configured client and "auto" fee estimation...`);
+        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, "auto", undefined, factoryFunds);
 
         if (result.code !== 0) {
           throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);

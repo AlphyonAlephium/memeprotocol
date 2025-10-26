@@ -3,7 +3,8 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { logs, StdFee, Coin } from "@cosmjs/stargate";
+import { logs, StdFee, calculateFee } from "@cosmjs/stargate";
+import { toUtf8 } from "@cosmjs/encoding";
 
 interface TokenCreationParams {
   name: string;
@@ -37,34 +38,32 @@ export const useTokenCreation = () => {
           },
         };
 
-        // --- THE UNIFIED FEE SOLUTION ---
+        const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
 
-        // 1. Define the separate costs.
-        const networkFeeAmount = 1_400_000; // The network requires ~1.35 SEI for gas. We use 1.4 for safety.
-        const contractFeeAmount = parseInt(TOKEN_CREATION_FEE); // The 10 SEI fee for the factory contract.
+        // --- THE SIMULATE AND EXECUTE STRATEGY ---
 
-        // 2. Combine them into a SINGLE funds array. This is what we pass to the contract.
-        const totalFunds: Coin[] = [
+        // 1. SIMULATE the transaction to get the exact gas required.
+        console.log("✅ Step 1/2: Simulating transaction to get exact gas requirement...");
+        const gasUsed = await client.simulate(address, [
           {
-            denom: "usei",
-            amount: (networkFeeAmount + contractFeeAmount).toString(),
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: {
+              sender: address,
+              contract: CONTRACTS.tokenFactory,
+              msg: toUtf8(JSON.stringify(msg)),
+              funds: factoryFunds,
+            },
           },
-        ];
+        ]);
 
-        // 3. Create a fee object that ONLY specifies the gas limit.
-        // We do NOT specify an amount here, as the wallet will derive it from the totalFunds.
-        const gasOnlyFee: StdFee = {
-          amount: [], // Leave this empty!
-          gas: "400000", // A safe gas limit for this transaction.
-        };
+        console.log(`✅ Gas needed: ${gasUsed}`);
 
-        console.log(`✅ FINAL SOLUTION: Sending a single unified fund of ${totalFunds[0].amount} usei.`);
-        console.log(`✅ Fee object only specifies gas limit: ${gasOnlyFee.gas}`);
+        // 2. EXECUTE the transaction with a perfect, dynamically calculated fee.
+        // We use the gas from the simulation, add a 20% safety margin, and calculate the fee with our correct gas price.
+        const fee = calculateFee(Math.round(gasUsed * 1.2), "3.5usei");
 
-        // 4. Execute the transaction.
-        // We pass totalFunds as the funds. The wallet will see this as the total cost.
-        // We pass gasOnlyFee as the fee. The client uses this to set the gas limit.
-        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, gasOnlyFee, undefined, totalFunds);
+        console.log(`✅ Step 2/2: Executing transaction with dynamically calculated fee: ${JSON.stringify(fee)}`);
+        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
 
         // --- END OF THE FIX ---
 

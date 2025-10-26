@@ -4,6 +4,7 @@ import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { logs, StdFee } from "@cosmjs/stargate";
+import { toUtf8 } from "@cosmjs/encoding";
 
 interface TokenCreationParams {
   name: string;
@@ -28,6 +29,9 @@ export const useTokenCreation = () => {
       let transactionHash = null;
 
       if (CONTRACTS.tokenFactory !== "sei1...") {
+        // --- THE FINAL SOLUTION: Bypass .execute() ---
+
+        // 1. Manually construct the raw transaction message.
         const msg = {
           create_token: {
             name: params.name,
@@ -36,34 +40,39 @@ export const useTokenCreation = () => {
             logo_url: params.imageUrl,
           },
         };
+        const executeContractMsg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: address,
+            contract: CONTRACTS.tokenFactory,
+            msg: toUtf8(JSON.stringify(msg)),
+            funds: [{ denom: "usei", amount: TOKEN_CREATION_FEE }], // The 10 SEI payment to the contract.
+          },
+        };
 
-        // --- THE FINAL, GUARANTEED SOLUTION: The Hardcoded Limit Strategy ---
-
-        // 1. The payment TO THE CONTRACT. This is kept separate.
-        const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }]; // 10 SEI
-
-        // 2. The Network Fee. We will mimic the wallet's successful strategy.
-        // We use a MASSIVE gas limit that is guaranteed to be enough.
-        // We calculate the fee amount based on this massive limit.
-        const gasLimit = "4000000"; // A huge, safe gas limit.
-        const feeAmount = (parseInt(gasLimit) * 3.5).toString(); // 4,000,000 * 3.5 = 14,000,000 usei (14 SEI)
-
+        // 2. Manually construct the Network Fee with a massive, safe gas limit.
+        // This mimics the successful strategy of the wallet dashboard.
         const fee: StdFee = {
           amount: [
             {
               denom: "usei",
-              amount: feeAmount,
+              amount: "14000000", // 14 SEI fee for the network
             },
           ],
-          gas: gasLimit,
+          gas: "4000000", // Massive gas limit
         };
 
-        console.log(`✅ THE FINAL SOLUTION: Mimicking the wallet's successful strategy.`);
-        console.log(`✅ Contract Payment (funds): ${JSON.stringify(factoryFunds)}`);
-        console.log(`✅ Network Fee (fee) with massive gas limit: ${JSON.stringify(fee)}`);
+        console.log(`✅ FINAL ATTEMPT: Bypassing .execute(). Using signAndBroadcast.`);
+        console.log(`✅ Raw Message: ${JSON.stringify(executeContractMsg)}`);
+        console.log(`✅ Raw Fee: ${JSON.stringify(fee)}`);
 
-        // 3. Execute with separate, undeniable parameters.
-        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
+        // 3. Use the low-level signAndBroadcast method. It sends exactly what we provide.
+        const result = await client.signAndBroadcast(
+          address,
+          [executeContractMsg], // The message must be in an array
+          fee,
+          "Create Meme Token", // Memo
+        );
 
         // --- END OF THE FIX ---
 

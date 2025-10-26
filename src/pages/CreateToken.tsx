@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useTokenCreation } from "@/hooks/useTokenCreation";
 import { supabase } from "@/integrations/supabase/client";
 
 const CreateToken = () => {
+  const navigate = useNavigate();
   const { isConnected, address, balance, connectWallet, isConnecting } = useWallet();
   const { createToken, isCreating } = useTokenCreation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,19 +95,12 @@ const CreateToken = () => {
         supply: formData.supply,
       });
 
-      if (result.success) {
-        // Reset form
-        setFormData({
-          name: "",
-          symbol: "",
-          description: "",
-          image: "",
-          supply: "1000000000",
-        });
-        setImageFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+      if (result.success && result.tokenId) {
+        toast.success("Token created successfully! Redirecting to management page...");
+        // Redirect to manage page after short delay
+        setTimeout(() => {
+          navigate(`/manage/${result.tokenId}`);
+        }, 1500);
       }
     } catch (error) {
       // Error already handled in useTokenCreation

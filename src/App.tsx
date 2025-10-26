@@ -7,6 +7,7 @@ import { WalletProvider } from "@/contexts/WalletContext";
 import Index from "./pages/Index";
 import Markets from "./pages/Markets";
 import CreateToken from "./pages/CreateToken";
+import ManageToken from "./pages/ManageToken";
 import Profile from "./pages/Profile";
 import Trade from "./pages/Trade";
 import NotFound from "./pages/NotFound";
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/markets" element={<Markets />} />
             <Route path="/create" element={<CreateToken />} />
+            <Route path="/manage/:tokenId" element={<ManageToken />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/trade/:tokenId" element={<Trade />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

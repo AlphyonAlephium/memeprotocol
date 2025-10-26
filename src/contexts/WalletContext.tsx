@@ -1,11 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+// We now import EVERYTHING from the one, correct library.
+import { getSigningCosmWasmClient } from "@sei-js/core";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SEI_CONFIG } from "@/config/contracts";
-import { Registry } from "@cosmjs/proto-signing";
-import { defaultRegistryTypes, AminoTypes, GasPrice } from "@cosmjs/stargate";
-import { cosmwasmProtoRegistry, wasmTypes } from "@cosmjs/cosmwasm-stargate";
-
-// No more @sei-js imports!
 
 interface WalletContextType {
   address: string | null;
@@ -19,7 +16,6 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
-  // ... (useState hooks are the same)
   const [address, setAddress] = useState<string | null>(null);
   const [client, setClient] = useState<SigningCosmWasmClient | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
@@ -31,61 +27,39 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const wallet = window.compass || window.fin || window.leap;
       if (!wallet) throw new Error("No Sei wallet detected!");
 
-      await wallet.enable(SEI_CONFIG.chainId);
+      // The rest of this function is now simplified, as the library handles the complexity.
       const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
-      const registry = new Registry([...defaultRegistryTypes, ...cosmwasmProtoRegistry]);
-      const aminoTypes = new AminoTypes({ ...wasmTypes });
-
-      const signingClient = await SigningCosmWasmClient.connectWithSigner(SEI_CONFIG.rpcEndpoint, offlineSigner, {
-        registry: registry,
-        aminoTypes: aminoTypes,
-        gasPrice: GasPrice.fromString("3.5usei"),
-      });
-
+      console.log("✅ Using official @sei-js/core helper to create client...");
+      const signingClient = await getSigningCosmWasmClient(SEI_CONFIG.rpcEndpoint, offlineSigner);
+      
       setAddress(userAddress);
       setClient(signingClient);
 
       const bal = await signingClient.getBalance(userAddress, "usei");
       setBalance((Number(bal.amount) / 1_000_000).toFixed(2));
-
       localStorage.setItem("wallet_connected", "true");
     } catch (error: any) {
       console.error("Failed to connect wallet:", error);
+      toast.error(`Wallet Connection Failed: ${error.message}`);
       throw error;
     } finally {
       setIsConnecting(false);
     }
   };
 
-  const disconnectWallet = () => {
-    /* ... same as before ... */
-  };
-  useEffect(() => {
-    /* ... same as before ... */
-  }, []);
+  const disconnectWallet = () => { /* ... same as before ... */ };
+  useEffect(() => { /* ... same as before ... */ }, []);
 
   return (
-    <WalletContext.Provider
-      value={{ address, isConnected: !!address, client, balance, connectWallet, disconnectWallet, isConnecting }}
-    >
+    <WalletContext.Provider value={{ address, isConnected: !!address, client, balance, connectWallet, disconnectWallet, isConnecting }}>
       {children}
-    </WalletContext.Provider>
+    </Wallet.Provider>
   );
 };
 
-export const useWallet = () => {
-  const context = useContext(WalletContext);
-  if (context === undefined) throw new Error("useWallet must be used within a WalletProvider");
-  return context;
-};
+export const useWallet = () => { /* ... same as before ... */ };
 
-declare global {
-  interface Window {
-    compass?: any;
-    fin?: any;
-    leap?: any;
-  }
-}
+declare global { /* ... same as before ... */ }

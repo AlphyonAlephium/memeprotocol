@@ -3,7 +3,6 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { logs } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
   name: string;
@@ -41,15 +40,17 @@ export const useTokenCreation = () => {
 
         // The client is now fully configured. We can just pass "auto" for the fee.
         // It will correctly use the 3.5usei gas price to calculate the fee.
-        console.log(`✅ Executing with fully configured client and "auto" fee estimation...`);
-        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, "auto", undefined, factoryFunds);
+        const fee = {
+          amount: [{ denom: "usei", amount: "10000000" }],
+          gas: "3000000",
+        };
 
-        if (result.code !== 0) {
-          throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
-        }
+        console.log(`✅ Executing token creation with 10 SEI fee...`);
+        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
 
-        const parsedLogs = logs.parseRawLog(result.rawLog);
-        contractAddress = logs.findAttribute(parsedLogs, "wasm", "new_token_contract").value;
+        contractAddress = result.logs[0]?.events
+          .find(e => e.type === "wasm")
+          ?.attributes.find(a => a.key === "new_token_contract")?.value || null;
         transactionHash = result.transactionHash;
 
         console.log("✅ Token created successfully:", { contractAddress, transactionHash });

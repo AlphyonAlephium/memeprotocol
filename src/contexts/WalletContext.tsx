@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { getSigningCosmWasmClient } from "@sei-js/core";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SEI_CONFIG } from "@/config/contracts";
+import { toast } from "sonner";
 
 interface WalletContextType {
   address: string | null;
@@ -27,14 +28,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const wallet = window.compass || window.fin || window.leap;
       if (!wallet) throw new Error("No Sei wallet detected!");
 
-      // The rest of this function is now simplified, as the library handles the complexity.
       const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
       console.log("✅ Using official @sei-js/core helper to create client...");
       const signingClient = await getSigningCosmWasmClient(SEI_CONFIG.rpcEndpoint, offlineSigner);
-      
+
       setAddress(userAddress);
       setClient(signingClient);
 
@@ -50,16 +50,43 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const disconnectWallet = () => { /* ... same as before ... */ };
-  useEffect(() => { /* ... same as before ... */ }, []);
+  const disconnectWallet = () => {
+    setAddress(null);
+    setClient(null);
+    setBalance(null);
+    localStorage.removeItem("wallet_connected");
+  };
+
+  useEffect(() => {
+    const wasConnected = localStorage.getItem("wallet_connected");
+    if (wasConnected === "true") {
+      connectWallet().catch(() => {
+        localStorage.removeItem("wallet_connected");
+      });
+    }
+  }, []);
 
   return (
-    <WalletContext.Provider value={{ address, isConnected: !!address, client, balance, connectWallet, disconnectWallet, isConnecting }}>
+    <WalletContext.Provider
+      value={{ address, isConnected: !!address, client, balance, connectWallet, disconnectWallet, isConnecting }}
+    >
       {children}
-    </Wallet.Provider>
+    </WalletContext.Provider>
   );
 };
 
-export const useWallet = () => { /* ... same as before ... */ };
+export const useWallet = () => {
+  const context = useContext(WalletContext);
+  if (context === undefined) {
+    throw new Error("useWallet must be used within a WalletProvider");
+  }
+  return context;
+};
 
-declare global { /* ... same as before ... */ }
+declare global {
+  interface Window {
+    compass?: any;
+    fin?: any;
+    leap?: any;
+  }
+}

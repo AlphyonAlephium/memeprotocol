@@ -3,8 +3,8 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE, SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice } from "@cosmjs/stargate";
+// Import the calculateFee function
+import { calculateFee } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
   name: string;
@@ -15,17 +15,14 @@ interface TokenCreationParams {
 }
 
 export const useTokenCreation = () => {
-  const { address } = useWallet();
+  // Get the original client from the context
+  const { client, address } = useWallet();
   const [isCreating, setIsCreating] = useState(false);
 
   const createToken = async (params: TokenCreationParams) => {
-    if (!address) {
+    // We now use the client from the context again.
+    if (!client || !address) {
       throw new Error("Wallet not connected");
-    }
-
-    const wallet = window.compass || window.fin || window.leap;
-    if (!wallet) {
-      throw new Error("Wallet provider (e.g., Compass) not found on window object.");
     }
 
     setIsCreating(true);
@@ -43,37 +40,33 @@ export const useTokenCreation = () => {
           },
         };
 
-        // --- THE "AUTO" FEE STRATEGY (BEST PRACTICE) ---
-        
-        // 1. Get a fresh signer directly from the wallet extension.
-        const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
+        // --- THE FINAL STRATEGY: MANUAL FEE CALCULATION ---
 
-        // 2. Create a NEW, temporary client with the CORRECT gas price.
-        // This is still necessary to ensure the "auto" calculation uses the right price.
-        console.log("✅ Creating a temporary client with correct gas price for 'auto' estimation...");
-        const tempClient = await SigningCosmWasmClient.connectWithSigner(
-          SEI_CONFIG.rpcEndpoint,
-          offlineSigner,
-          {
-            gasPrice: GasPrice.fromString("3.5usei") // Correct gas price is crucial for "auto"
-          }
-        );
-        console.log("✅ Temporary client created successfully.");
+        // 1. Define a generous gas limit.
+        const gasLimit = 2000000;
 
-        // 3. Define the funds that go to the contract.
+        // 2. Define the correct gas price.
+        const gasPrice = "3.5usei";
+
+        // 3. Use the `calculateFee` helper function to create the fee object.
+        // This is the most reliable way to ensure the fee is constructed correctly.
+        const networkFee = calculateFee(gasLimit, gasPrice);
+
+        // 4. Define the funds that go to the contract.
         const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
 
-        // 4. Execute the transaction, passing "auto" as the fee parameter.
-        console.log("✅ Executing transaction with 'auto' fee estimation...");
-        const result = await tempClient.execute(
+        console.log(`✅ Executing with manually calculated fee: ${JSON.stringify(networkFee)}`);
+
+        // 5. Use the ORIGINAL client from the context to execute.
+        const result = await client.execute(
           address,
           CONTRACTS.tokenFactory,
           msg,
-          "auto",     // <--- THE BEST PRACTICE
+          networkFee, // Pass the correctly calculated fee object
           undefined,  // Memo
           factoryFunds
         );
-        
+
         // --- END OF THE FIX ---
 
         contractAddress = result.logs[0]?.events
@@ -85,40 +78,16 @@ export const useTokenCreation = () => {
         console.log("Token created:", { contractAddress, transactionHash });
       }
 
-      // Store token metadata in database
-      const { data: tokenData, error: dbError } = await supabase
-        .from("tokens")
-        .insert({
-          creator_address: address,
-          name: params.name,
-          symbol: params.symbol,
-          description: params.description,
-          image_url: params.imageUrl,
-          contract_address: contractAddress,
-          transaction_hash: transactionHash,
-          total_supply: params.supply,
-        })
-        .select()
-        .single();
+      // ... (rest of the function is the same)
+      const { data: tokenData, error: dbError } = await supabase.from("tokens").insert({
+        creator_address: address, name: params.name, symbol: params.symbol, description: params.description,
+        image_url: params.imageUrl, contract_address: contractAddress, transaction_hash: transactionHash,
+        total_supply: params.supply,
+      }).select().single();
+      if (dbError) { console.error("DB Error:", dbError); throw dbError; }
+      toast.success(contractAddress ? `Token deployed! TX: ${transactionHash?.slice(0, 8)}...` : "Token metadata saved!");
+      return { success: true, transactionHash, tokenAddress: contractAddress, tokenId: tokenData.id };
 
-      if (dbError) {
-        console.error("Database error:", dbError);
-        toast.error("Failed to save token metadata");
-        throw dbError;
-      }
-
-      toast.success(
-        contractAddress 
-          ? `Token deployed! TX: ${transactionHash?.slice(0, 8)}...`
-          : "Token metadata saved! Deploy contracts to launch on-chain"
-      );
-
-      return {
-        success: true,
-        transactionHash,
-        tokenAddress: contractAddress,
-        tokenId: tokenData.id,
-      };
     } catch (error: any) {
       console.error("Token creation failed:", error);
       toast.error(error.message || "Failed to create token");
@@ -133,12 +102,3 @@ export const useTokenCreation = () => {
     isCreating,
   };
 };
-
-// Type declarations for wallet extensions
-declare global {
-  interface Window {
-    compass?: any;
-    fin?: any;
-    leap?: any;
-  }
-}

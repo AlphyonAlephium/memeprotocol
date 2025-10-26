@@ -1,3 +1,21 @@
+import { useState } from "react";
+import { useWallet } from "@/contexts/WalletContext";
+import { CONTRACTS, TOKEN_CREATION_FEE, DEFAULT_TOKEN_SUPPLY, PLATFORM_OWNER } from "@/config/contracts";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+interface TokenCreationParams {
+  name: string;
+  symbol: string;
+  imageUrl: string;
+  description: string;
+  supply: string;
+}
+
+export const useTokenCreation = () => {
+  const { client, address } = useWallet();
+  const [isCreating, setIsCreating] = useState(false);
+
   const createToken = async (params: TokenCreationParams) => {
     if (!client || !address) {
       throw new Error("Wallet not connected");
@@ -8,6 +26,7 @@
       let contractAddress = null;
       let transactionHash = null;
 
+      // If contracts are deployed, interact with blockchain
       if (CONTRACTS.tokenFactory !== "sei1...") {
         const msg = {
           create_token: {
@@ -18,36 +37,20 @@
           },
         };
 
-        // --- START OF THE FIX ---
-
-        // 1. Manually define the entire fee object.
-        // This is the fee that goes to the network validators.
-        const networkFee = {
-          amount: [{ denom: "usei", amount: "2000000" }], // 2 SEI
-          gas: "500000",
-        };
-
-        // 2. Manually define the funds object.
-        // This is the fee that goes to our factory contract.
-        const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }]; // 10 SEI
-
-        // 3. Add a log to see exactly what is being sent.
-        console.log("Attempting to execute with...");
-        console.log("Network Fee:", JSON.stringify(networkFee));
-        console.log("Factory Funds:", JSON.stringify(factoryFunds));
-
-        // 4. Pass these exact objects to the execute function.
+        // Execute the contract with 10 SEI factory fee + 2 SEI gas
         const result = await client.execute(
           address,
           CONTRACTS.tokenFactory,
           msg,
-          networkFee,    // Use the manually created networkFee object
-          undefined,     // Memo
-          factoryFunds   // Use the manually created factoryFunds object
+          {
+            amount: [{ denom: "usei", amount: "2000000" }], // 2 SEI for gas
+            gas: "500000", // Correct gas limit.
+          },
+          undefined,
+          [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee
         );
-        
-        // --- END OF THE FIX ---
 
+        // Parse the new token contract address from logs
         contractAddress = result.logs[0]?.events
           .find((e) => e.type === "wasm")
           ?.attributes.find((a) => a.key === "new_token_contract")?.value || null;
@@ -57,11 +60,51 @@
         console.log("Token created:", { contractAddress, transactionHash });
       }
 
-      // ... (rest of the function is the same)
-      // ...
+      // Store token metadata in database
+      const { data: tokenData, error: dbError } = await supabase
+        .from("tokens")
+        .insert({
+          creator_address: address,
+          name: params.name,
+          symbol: params.symbol,
+          description: params.description,
+          image_url: params.imageUrl,
+          contract_address: contractAddress,
+          transaction_hash: transactionHash,
+          total_supply: params.supply,
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        toast.error("Failed to save token metadata");
+        throw dbError;
+      }
+
+      toast.success(
+        contractAddress 
+          ? `Token deployed! TX: ${transactionHash?.slice(0, 8)}...`
+          : "Token metadata saved! Deploy contracts to launch on-chain"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+        tokenAddress: contractAddress,
+        tokenId: tokenData.id,
+      };
     } catch (error: any) {
-      // ...
+      console.error("Token creation failed:", error);
+      toast.error(error.message || "Failed to create token");
+      throw error;
     } finally {
-      // ...
+      setIsCreating(false);
     }
   };
+
+  return {
+    createToken,
+    isCreating,
+  };
+};

@@ -37,20 +37,14 @@ export const useTokenCreation = () => {
           },
         };
 
-        // Execute the contract with 10 SEI factory fee
-        // Fee calculation: 500000 gas * 3.5 usei/gas = 1,750,000 usei minimum
+        // Execute the contract with automatic fee estimation using configured gas price
         const result = await client.execute(
           address,
           CONTRACTS.tokenFactory,
           msg,
-          {
-            amount: [{ denom: "usei", amount: "2000000" }], // 2 SEI for gas fees
-            gas: "500000",
-            granter: undefined,
-            payer: undefined,
-          },
+          "auto", // let the client simulate and compute proper fee based on SEI_CONFIG.gasPrice
           "",
-          [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee
+          [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee sent to contract
         );
 
         // Parse the new token contract address from logs

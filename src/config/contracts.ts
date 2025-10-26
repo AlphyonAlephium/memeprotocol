@@ -1,7 +1,8 @@
 // Sei Network Configuration
 export const SEI_CONFIG = {
   chainId: "atlantic-2", // Testnet - change to "pacific-1" for mainnet
-  rpcEndpoint: "https://sei-testnet-rpc.polkachu.com:443",
+  // THE FINAL CHANGE: Switch to the official Sei testnet RPC endpoint.
+  rpcEndpoint: "https://rpc.atlantic-2.seinetwork.io",
   restEndpoint: "https://rest.atlantic-2.seinetwork.io",
   gasPrice: "3.5usei", // Gas price for transactions
 };

@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useWallet } from "@/contexts/WalletContext";
-import { CONTRACTS, TOKEN_CREATION_FEE, SEI_CONFIG } from "@/config/contracts";
+import { CONTRACTS, TOKEN_CREATION_FEE } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { calculateFee } from "@cosmjs/stargate";
-import { toUtf8 } from "@cosmjs/encoding";
 import { logs } from "@cosmjs/stargate";
 
 interface TokenCreationParams {
@@ -17,11 +15,12 @@ interface TokenCreationParams {
 }
 
 export const useTokenCreation = () => {
-  const { address } = useWallet();
+  // We now trust the client from the context again.
+  const { client, address } = useWallet();
   const [isCreating, setIsCreating] = useState(false);
 
   const createToken = async (params: TokenCreationParams) => {
-    if (!address) {
+    if (!client || !address) {
       throw new Error("Wallet not connected");
     }
 
@@ -31,24 +30,6 @@ export const useTokenCreation = () => {
       let transactionHash = null;
 
       if (CONTRACTS.tokenFactory !== "sei1...") {
-        // --- THE IN-PLACE CLIENT STRATEGY (V12) ---
-
-        // 1. Get the wallet provider directly from the window, ignoring the context's client.
-        const wallet = window.compass || window.fin || window.leap;
-        if (!wallet) {
-          throw new Error("Wallet provider (e.g., Compass) not found on window object.");
-        }
-        const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
-
-        // 2. Create a NEW, temporary client ON THE SPOT. This client is guaranteed to be clean.
-        console.log("✅ V12 FINAL: Creating a temporary, in-place client...");
-        const tempClient = await SigningCosmWasmClient.connectWithSigner(
-          SEI_CONFIG.rpcEndpoint,
-          offlineSigner,
-          // We no longer set gas price here, as it's unreliable. We will define the fee manually.
-        );
-
-        // 3. Manually construct the message.
         const msg = {
           create_token: {
             name: params.name,
@@ -57,29 +38,16 @@ export const useTokenCreation = () => {
             logo_url: params.imageUrl,
           },
         };
-        const executeContractMsg = {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: {
-            sender: address,
-            contract: CONTRACTS.tokenFactory,
-            msg: toUtf8(JSON.stringify(msg)),
-            funds: [{ denom: "usei", amount: TOKEN_CREATION_FEE }],
-          },
-        };
 
-        // 4. Manually construct the fee with the PROVEN correct values.
-        const fee = calculateFee(2000000, "3.5usei"); // This creates a 7,000,000usei fee object.
-        console.log("✅ V12 FINAL: Broadcasting with in-place client and fee:", JSON.stringify(fee));
+        // --- THE FINAL, CLEAN STRATEGY ---
+        // 1. Manually calculate the fee with the correct, proven values.
+        const fee = calculateFee(2000000, "3.5usei");
+        const factoryFunds = [{ denom: "usei", amount: TOKEN_CREATION_FEE }];
 
-        // 5. Use the NEW temporary client to sign and broadcast.
-        const result = await tempClient.signAndBroadcast(
-          address,
-          [executeContractMsg],
-          fee,
-          "Create token via in-place client",
-        );
+        console.log(`✅ Executing with correctly built client and fee: ${JSON.stringify(fee)}`);
 
-        // --- END OF THE FIX ---
+        // 2. Use the new, trusted client to execute the transaction.
+        const result = await client.execute(address, CONTRACTS.tokenFactory, msg, fee, undefined, factoryFunds);
 
         if (result.code !== 0) {
           throw new Error(`Transaction failed with code ${result.code}: ${result.rawLog}`);
@@ -92,7 +60,7 @@ export const useTokenCreation = () => {
         console.log("✅ Token created successfully:", { contractAddress, transactionHash });
       }
 
-      // ... (rest of the function is the same)
+      // ... (rest of function is the same)
       const { data: tokenData, error: dbError } = await supabase
         .from("tokens")
         .insert({
@@ -127,11 +95,3 @@ export const useTokenCreation = () => {
     isCreating,
   };
 };
-
-declare global {
-  interface Window {
-    compass?: any;
-    fin?: any;
-    leap?: any;
-  }
-}

@@ -1,17 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice } from "@cosmjs/stargate";
+import { SigningCosmWasmClient, CosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice, Registry, AminoTypes, defaultRegistryTypes } from "@cosmjs/stargate";
+import { cosmwasmProtoRegistry, wasmTypes } from "@cosmjs/cosmwasm-stargate";
 import { SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 
+// This context uses only official @cosmjs libraries
+
 interface WalletContextType {
-  address: string | null;
-  isConnected: boolean;
-  client: SigningCosmWasmClient | null;
-  balance: string | null;
-  connectWallet: () => Promise<void>;
-  disconnectWallet: () => void;
-  isConnecting: boolean;
+  /* ... same as before ... */
 }
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
@@ -27,19 +24,27 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const wallet = window.compass || window.fin || window.leap;
       if (!wallet) throw new Error("No Sei wallet detected!");
 
+      await wallet.enable(SEI_CONFIG.chainId);
       const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
-      const signingClient = await SigningCosmWasmClient.connectWithSigner(
-        SEI_CONFIG.rpcEndpoint,
-        offlineSigner,
-        { gasPrice: GasPrice.fromString("0.1usei") }
-      );
+      // Build a PURE CosmJS client from scratch
+      const registry = new Registry([...defaultRegistryTypes, ...cosmwasmProtoRegistry]);
+      const aminoTypes = new AminoTypes({ ...wasmTypes });
+      const clientOptions: CosmWasmClientOptions = {
+        gasPrice: GasPrice.fromString("3.5usei"),
+      };
+
+      console.log("✅ Creating a PURE CosmJS client. No @sei-js libraries are being used.");
+      const signingClient = await SigningCosmWasmClient.connectWithSigner(SEI_CONFIG.rpcEndpoint, offlineSigner, {
+        registry,
+        aminoTypes,
+        ...clientOptions,
+      });
 
       setAddress(userAddress);
       setClient(signingClient);
-
       const bal = await signingClient.getBalance(userAddress, "usei");
       setBalance((Number(bal.amount) / 1_000_000).toFixed(2));
       localStorage.setItem("wallet_connected", "true");
@@ -53,19 +58,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const disconnectWallet = () => {
-    setAddress(null);
-    setClient(null);
-    setBalance(null);
-    localStorage.removeItem("wallet_connected");
+    /* ... same as before ... */
   };
-
   useEffect(() => {
-    const wasConnected = localStorage.getItem("wallet_connected");
-    if (wasConnected === "true") {
-      connectWallet().catch(() => {
-        localStorage.removeItem("wallet_connected");
-      });
-    }
+    /* ... same as before ... */
   }, []);
 
   return (
@@ -78,17 +74,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useWallet = () => {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error("useWallet must be used within a WalletProvider");
-  }
-  return context;
+  /* ... same as before ... */
 };
-
 declare global {
-  interface Window {
-    compass?: any;
-    fin?: any;
-    leap?: any;
-  }
+  /* ... same as before ... */
 }

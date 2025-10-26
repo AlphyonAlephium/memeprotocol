@@ -3,6 +3,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { CONTRACTS, TOKEN_CREATION_FEE, SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { calculateFee } from "@cosmjs/stargate";
 import { toUtf8 } from "@cosmjs/encoding";
 import { logs } from "@cosmjs/stargate";
@@ -16,11 +17,11 @@ interface TokenCreationParams {
 }
 
 export const useTokenCreation = () => {
-  const { client, address } = useWallet();
+  const { address } = useWallet();
   const [isCreating, setIsCreating] = useState(false);
 
   const createToken = async (params: TokenCreationParams) => {
-    if (!client || !address) {
+    if (!address) {
       throw new Error("Wallet not connected");
     }
 
@@ -30,9 +31,24 @@ export const useTokenCreation = () => {
       let transactionHash = null;
 
       if (CONTRACTS.tokenFactory !== "sei1...") {
-        // --- THE FINAL, ROBUST STRATEGY (V11) ---
+        // --- THE IN-PLACE CLIENT STRATEGY (V12) ---
 
-        // 1. Manually construct the execution message.
+        // 1. Get the wallet provider directly from the window, ignoring the context's client.
+        const wallet = window.compass || window.fin || window.leap;
+        if (!wallet) {
+          throw new Error("Wallet provider (e.g., Compass) not found on window object.");
+        }
+        const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
+
+        // 2. Create a NEW, temporary client ON THE SPOT. This client is guaranteed to be clean.
+        console.log("✅ V12 FINAL: Creating a temporary, in-place client...");
+        const tempClient = await SigningCosmWasmClient.connectWithSigner(
+          SEI_CONFIG.rpcEndpoint,
+          offlineSigner,
+          // We no longer set gas price here, as it's unreliable. We will define the fee manually.
+        );
+
+        // 3. Manually construct the message.
         const msg = {
           create_token: {
             name: params.name,
@@ -41,7 +57,6 @@ export const useTokenCreation = () => {
             logo_url: params.imageUrl,
           },
         };
-
         const executeContractMsg = {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: {
@@ -52,24 +67,16 @@ export const useTokenCreation = () => {
           },
         };
 
-        // 2. Manually construct the fee object with exact values needed
-        const gasLimit = 2000000;
-        const fee = {
-          amount: [{ denom: "usei", amount: "7000000" }], // 2M gas * 3.5 = 7M usei
-          gas: gasLimit.toString(),
-        };
+        // 4. Manually construct the fee with the PROVEN correct values.
+        const fee = calculateFee(2000000, "3.5usei"); // This creates a 7,000,000usei fee object.
+        console.log("✅ V12 FINAL: Broadcasting with in-place client and fee:", JSON.stringify(fee));
 
-        console.log(
-          "✅ V12: Manual fee construction with exact values:",
-          JSON.stringify(fee),
-        );
-
-        // 3. Use the low-level signAndBroadcast method.
-        const result = await client.signAndBroadcast(
+        // 5. Use the NEW temporary client to sign and broadcast.
+        const result = await tempClient.signAndBroadcast(
           address,
           [executeContractMsg],
           fee,
-          "Create token", // Memo
+          "Create token via in-place client",
         );
 
         // --- END OF THE FIX ---
@@ -120,3 +127,11 @@ export const useTokenCreation = () => {
     isCreating,
   };
 };
+
+declare global {
+  interface Window {
+    compass?: any;
+    fin?: any;
+    leap?: any;
+  }
+}

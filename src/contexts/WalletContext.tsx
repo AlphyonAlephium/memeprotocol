@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getSigningCosmWasmClient } from "@sei-js/core";
-import { SigningCosmWasmClient, CosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice } from "@cosmjs/stargate"; // This is needed to create the gas price object
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice } from "@cosmjs/stargate";
 import { SEI_CONFIG } from "@/config/contracts";
 import { toast } from "sonner";
 
@@ -32,14 +31,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const accounts = await offlineSigner.getAccounts();
       const userAddress = accounts[0].address;
 
-      // --- THE FINAL FIX: Add Gas Price to Client Options ---
-      const clientOptions: CosmWasmClientOptions = {
-        gasPrice: GasPrice.fromString("3.5usei"),
-      };
-
-      console.log("✅ Using @sei-js/core helper with explicit gas price for auto-estimation...");
-      const signingClient = await getSigningCosmWasmClient(SEI_CONFIG.rpcEndpoint, offlineSigner, clientOptions);
-      // --- END OF FINAL FIX ---
+      const signingClient = await SigningCosmWasmClient.connectWithSigner(
+        SEI_CONFIG.rpcEndpoint,
+        offlineSigner,
+        { gasPrice: GasPrice.fromString("0.1usei") }
+      );
 
       setAddress(userAddress);
       setClient(signingClient);

@@ -44,7 +44,7 @@ export const useTokenCreation = () => {
           msg,
           {
             amount: [{ denom: "usei", amount: "2000000" }], // 2 SEI for gas
-            gas: "500000",
+            gas: "20000000", // High gas limit for contract instantiation
           },
           undefined,
           [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee

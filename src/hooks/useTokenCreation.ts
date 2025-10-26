@@ -28,53 +28,36 @@ export const useTokenCreation = () => {
 
       // If contracts are deployed, interact with blockchain
       if (CONTRACTS.tokenFactory !== "sei1...") {
-        // Preflight check: validate contract config
-        try {
-          const configQuery = await client.queryContractSmart(
-            CONTRACTS.tokenFactory,
-            { config: {} }
-          );
-          
-          if (!configQuery.owner || configQuery.owner.trim() === "") {
-            throw new Error("Contract owner not configured. Please configure the factory contract first.");
-          }
-          
-          if (!configQuery.cw20_code_id || configQuery.cw20_code_id === 0) {
-            throw new Error("CW20 code ID not configured. Please set cw20_code_id in the factory contract.");
-          }
-          
-          console.log("Contract config validated:", configQuery);
-        } catch (configError: any) {
-          console.error("Config validation failed:", configError);
-          toast.error(configError.message || "Contract configuration invalid");
-          throw configError;
-        }
-
         const msg = {
           create_token: {
             name: params.name,
             symbol: params.symbol,
             total_supply: params.supply,
-            image_url: params.imageUrl,
-            description: params.description,
+            logo_url: params.imageUrl,
           },
         };
 
-        // Execute the contract with 20 SEI payment
+        // Execute the contract with 10 SEI factory fee + 2 SEI gas
         const result = await client.execute(
           address,
           CONTRACTS.tokenFactory,
           msg,
-          "auto",
+          {
+            amount: [{ denom: "usei", amount: "2000000" }], // 2 SEI for gas
+            gas: "500000",
+          },
           undefined,
-          [{ denom: "usei", amount: TOKEN_CREATION_FEE }]
+          [{ denom: "usei", amount: TOKEN_CREATION_FEE }] // 10 SEI factory fee
         );
 
+        // Parse the new token contract address from logs
         contractAddress = result.logs[0]?.events
           .find((e) => e.type === "wasm")
-          ?.attributes.find((a) => a.key === "token_address")?.value || null;
+          ?.attributes.find((a) => a.key === "new_token_contract")?.value || null;
         
         transactionHash = result.transactionHash;
+        
+        console.log("Token created:", { contractAddress, transactionHash });
       }
 
       // Store token metadata in database

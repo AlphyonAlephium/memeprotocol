@@ -8,49 +8,50 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
+    --background: 230 35% 7%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 6%;
+    --card: 230 25% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 6%;
+    --popover: 230 30% 10%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 263 70% 65%;
+    --primary: 245 75% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 10% 12%;
+    --secondary: 230 20% 18%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 230 20% 20%;
+    --muted-foreground: 230 10% 55%;
 
-    --accent: 189 94% 43%;
+    --accent: 200 90% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 263 70% 65%;
+    --border: 230 20% 20%;
+    --input: 230 25% 15%;
+    --ring: 245 75% 65%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --neon-purple: 263 70% 65%;
-    --neon-cyan: 189 94% 43%;
+    --neon-purple: 245 75% 65%;
+    --neon-cyan: 200 90% 50%;
     --neon-pink: 330 81% 60%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(263 70% 65% / 0.2), hsl(189 94% 43% / 0.2));
-    --gradient-card: linear-gradient(135deg, hsl(240 10% 6%), hsl(240 10% 8%));
+    --gradient-hero: linear-gradient(135deg, hsl(230 50% 15%), hsl(240 60% 20%));
+    --gradient-card: linear-gradient(135deg, hsl(230 25% 12% / 0.5), hsl(235 30% 15% / 0.5));
+    --gradient-bg: radial-gradient(ellipse at top, hsl(240 60% 20% / 0.3), transparent 50%), radial-gradient(ellipse at bottom, hsl(230 50% 10%), transparent 50%);
     
-    --shadow-glow: 0 0 40px hsl(263 70% 65% / 0.3);
-    --shadow-glow-cyan: 0 0 40px hsl(189 94% 43% / 0.3);
-    --shadow-glow-pink: 0 0 40px hsl(330 81% 60% / 0.3);
+    --shadow-glow: 0 8px 32px hsl(245 75% 65% / 0.15);
+    --shadow-glow-cyan: 0 8px 32px hsl(200 90% 50% / 0.15);
+    --shadow-card: 0 4px 24px hsl(230 30% 5% / 0.5);
   }
 }
 
@@ -61,6 +62,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background: var(--gradient-bg);
+    background-attachment: fixed;
     font-feature-settings: "cv11", "ss01";
     font-variation-settings: "opsz" 32;
   }
@@ -73,7 +76,7 @@ All colors MUST be HSL.
     box-shadow: var(--shadow-glow-cyan);
   }
 
-  .glow-effect-pink {
-    box-shadow: var(--shadow-glow-pink);
+  .card-shadow {
+    box-shadow: var(--shadow-card);
   }
 }

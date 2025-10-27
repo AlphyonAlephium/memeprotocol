@@ -13,10 +13,10 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
   const navigate = useNavigate();
 
   return (
-    <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all hover:glow-effect cursor-pointer">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center overflow-hidden">
+    <Card className="p-5 bg-gradient-card border-border/50 hover:border-primary/30 transition-all card-shadow backdrop-blur cursor-pointer group">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-secondary/50 flex items-center justify-center overflow-hidden">
             {token.image_url ? (
               <img
                 src={token.image_url}
@@ -24,41 +24,41 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-3xl">🪙</span>
+              <span className="text-2xl">🪙</span>
             )}
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold">{token.name}</h3>
-            <p className="text-muted-foreground">${token.symbol}</p>
+            <h3 className="text-lg font-semibold">{token.name}</h3>
+            <p className="text-sm text-muted-foreground/60">${token.symbol}</p>
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground line-clamp-2">
+        <p className="text-sm text-muted-foreground/70 line-clamp-2">
           {token.description}
         </p>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Price</span>
-            <span className="font-semibold text-primary">
+            <span className="text-muted-foreground/60">Price</span>
+            <span className="font-medium text-primary">
               ${(Math.random() * 0.01).toFixed(6)}
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">24h Change</span>
-            <span className={`font-semibold ${Math.random() > 0.5 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className="text-muted-foreground/60">24h Change</span>
+            <span className={`font-medium ${Math.random() > 0.5 ? 'text-green-400' : 'text-red-400'}`}>
               {Math.random() > 0.5 ? '+' : '-'}{(Math.random() * 20).toFixed(2)}%
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Supply</span>
-            <span className="font-semibold">
+            <span className="text-muted-foreground/60">Supply</span>
+            <span className="font-medium">
               {Number(token.total_supply).toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Created</span>
-            <span className="font-semibold">
+            <span className="text-muted-foreground/60">Created</span>
+            <span className="font-medium text-xs">
               {formatDistanceToNow(new Date(token.created_at), {
                 addSuffix: true,
               })}
@@ -67,10 +67,10 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
         </div>
 
         <Button 
-          className="w-full glow-effect-cyan"
+          className="w-full bg-primary/90 hover:bg-primary mt-1"
           onClick={() => navigate(`/trade/${token.id}`)}
         >
-          Buy
+          Trade
         </Button>
       </div>
     </Card>

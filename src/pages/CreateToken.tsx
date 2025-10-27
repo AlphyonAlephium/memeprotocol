@@ -95,11 +95,11 @@ const CreateToken = () => {
         supply: formData.supply,
       });
 
-      if (result.success && result.tokenId) {
+      if (result.success && result.tokenId && result.tokenAddress) {
         toast.success("Token created successfully! Redirecting to management page...");
         // Redirect to manage page after short delay
         setTimeout(() => {
-          navigate(`/manage/${result.tokenId}`);
+          navigate(`/manage/${result.tokenId}/${result.tokenAddress}`);
         }, 1500);
       }
     } catch (error) {

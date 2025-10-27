@@ -25,7 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/markets" element={<Markets />} />
             <Route path="/create" element={<CreateToken />} />
-            <Route path="/manage/:tokenId" element={<ManageToken />} />
+            <Route path="/manage/:tokenId/:tokenAddress" element={<ManageToken />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/trade/:tokenId" element={<Trade />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

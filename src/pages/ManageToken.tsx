@@ -3,12 +3,11 @@ import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, Droplets, TrendingUp, Wallet, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
+import AddLiquidityForm from "@/components/AddLiquidityForm";
 
 interface Token {
   id: string;
@@ -23,12 +22,10 @@ interface Token {
 }
 
 const ManageToken = () => {
-  const { tokenId } = useParams();
-  const { isConnected, address, balance, connectWallet } = useWallet();
+  const { tokenId, tokenAddress } = useParams();
+  const { address } = useWallet();
   const [token, setToken] = useState<Token | null>(null);
   const [loading, setLoading] = useState(true);
-  const [liquidityAmount, setLiquidityAmount] = useState("");
-  const [isAddingLiquidity, setIsAddingLiquidity] = useState(false);
 
   useEffect(() => {
     if (tokenId) {
@@ -54,32 +51,6 @@ const ManageToken = () => {
     }
   };
 
-  const handleAddLiquidity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isConnected) {
-      toast.error("Please connect your wallet first");
-      return;
-    }
-
-    if (!liquidityAmount || parseFloat(liquidityAmount) <= 0) {
-      toast.error("Please enter a valid liquidity amount");
-      return;
-    }
-
-    setIsAddingLiquidity(true);
-    try {
-      // TODO: Implement bonding curve contract interaction
-      // For now, just show a placeholder message
-      toast.success(`Adding ${liquidityAmount} SEI liquidity - Coming soon!`);
-      setLiquidityAmount("");
-    } catch (error) {
-      console.error("Error adding liquidity:", error);
-      toast.error("Failed to add liquidity");
-    } finally {
-      setIsAddingLiquidity(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -129,13 +100,12 @@ const ManageToken = () => {
                 <p className="text-muted-foreground">
                   Control panel for {token.name}
                 </p>
+                {tokenAddress && (
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    {tokenAddress}
+                  </p>
+                )}
               </div>
-              {!isConnected && (
-                <Button onClick={connectWallet} className="glow-effect-cyan">
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
-                </Button>
-              )}
             </div>
           </div>
 
@@ -190,89 +160,13 @@ const ManageToken = () => {
             </Card>
 
             {/* Add Liquidity Section - Most Prominent */}
-            <Card className="lg:col-span-2 p-8 bg-gradient-to-br from-primary/10 via-accent/10 to-neon-pink/10 border-primary/20">
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="p-3 rounded-2xl bg-primary/20">
-                    <Droplets className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold">Add Initial Liquidity</h2>
-                    <p className="text-muted-foreground">Enable trading with a bonding curve</p>
-                  </div>
-                </div>
-
-                {!isOwner ? (
-                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                    <p className="text-destructive font-medium">
-                      Only the token creator can add liquidity
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="bg-secondary/50 rounded-lg p-6 space-y-4">
-                      <div className="flex items-start gap-3">
-                        <TrendingUp className="w-5 h-5 text-accent mt-1" />
-                        <div className="flex-1">
-                          <h3 className="font-semibold mb-2">How it works</h3>
-                          <ul className="text-sm text-muted-foreground space-y-2">
-                            <li>• Your SEI becomes the initial liquidity pool</li>
-                            <li>• Price automatically adjusts based on supply/demand</li>
-                            <li>• Traders can buy/sell instantly without order books</li>
-                            <li>• You can add more liquidity anytime</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-
-                    <form onSubmit={handleAddLiquidity} className="space-y-6">
-                      <div>
-                        <Label htmlFor="liquidity" className="text-lg">SEI Amount</Label>
-                        <Input
-                          id="liquidity"
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          placeholder="e.g., 100"
-                          value={liquidityAmount}
-                          onChange={(e) => setLiquidityAmount(e.target.value)}
-                          className="mt-2 bg-secondary border-border h-14 text-lg"
-                          required
-                        />
-                        <div className="flex justify-between mt-2">
-                          <p className="text-sm text-muted-foreground">
-                            Minimum: 10 SEI recommended
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Your balance: {balance} SEI
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                        <p className="text-sm font-medium mb-2">Initial Price Calculation</p>
-                        <p className="text-sm text-muted-foreground">
-                          Starting price will be determined by the bonding curve formula based on your initial liquidity amount.
-                        </p>
-                      </div>
-
-                      <Button
-                        type="submit"
-                        className="w-full glow-effect text-xl h-14"
-                        disabled={!isConnected || isAddingLiquidity}
-                      >
-                        <Droplets className="w-6 h-6 mr-2" />
-                        {isAddingLiquidity ? "Adding Liquidity..." : "Add Liquidity & Enable Trading"}
-                      </Button>
-                    </form>
-
-                    <p className="text-xs text-muted-foreground text-center">
-                      Once liquidity is added, your token will be tradeable on the platform
-                    </p>
-                  </>
-                )}
-              </div>
-            </Card>
+            <div className="lg:col-span-2">
+              <AddLiquidityForm 
+                tokenSymbol={token.symbol}
+                tokenName={token.name}
+                isOwner={isOwner}
+              />
+            </div>
           </div>
 
           {/* Additional Management Features (Future) */}

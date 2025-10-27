@@ -2,25 +2,22 @@ import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, TrendingUp, Clock, Copy, Check } from "lucide-react";
+import { Wallet, TrendingUp, Clock, Copy, Check, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useUserTokens } from "@/hooks/useUserTokens";
 
 const Profile = () => {
   const { isConnected, address, balance, connectWallet, isConnecting } = useWallet();
   const [copied, setCopied] = useState(false);
+  const { data: userTokens, isLoading: tokensLoading } = useUserTokens(address);
 
   const mockHoldings = [
     { symbol: "DOGE2", amount: "1,500,000", value: "675 SEI", change: "+23.5%" },
     { symbol: "PEPEMAX", amount: "3,200,000", value: "384 SEI", change: "+12.8%" },
     { symbol: "MCAT", amount: "850,000", value: "756 SEI", change: "-5.2%" },
-  ];
-
-  const mockCreated = [
-    { name: "RocketShiba", symbol: "RSHIB", holders: 234, volume: "2.3M SEI" },
-    { name: "MoonDoge", symbol: "MDOGE", holders: 156, volume: "1.5M SEI" },
   ];
 
   const copyAddress = () => {
@@ -144,31 +141,55 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="created" className="space-y-4">
-              {mockCreated.map((token, index) => (
-                <Card
-                  key={index}
-                  className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold mb-1">
-                        {token.name} (${token.symbol})
-                      </h3>
-                      <p className="text-muted-foreground">
-                        {token.holders} holders
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Total Volume
-                      </p>
-                      <p className="text-xl font-bold text-accent">
-                        {token.volume}
-                      </p>
-                    </div>
-                  </div>
+              {tokensLoading ? (
+                <Card className="p-12 bg-gradient-card border-border text-center">
+                  <p className="text-muted-foreground">Loading your tokens...</p>
                 </Card>
-              ))}
+              ) : userTokens && userTokens.length > 0 ? (
+                userTokens.map((token) => (
+                  <Card
+                    key={token.id}
+                    className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <img
+                          src={token.image_url}
+                          alt={token.name}
+                          className="w-16 h-16 rounded-xl object-cover"
+                        />
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">
+                            {token.name} (${token.symbol})
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Supply: {parseInt(token.total_supply).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Link to={`/manage/${token.id}/${token.contract_address}`}>
+                        <Button variant="secondary" className="gap-2">
+                          <Settings className="w-4 h-4" />
+                          Manage
+                        </Button>
+                      </Link>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-12 bg-gradient-card border-border text-center">
+                  <TrendingUp className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground text-lg mb-4">No tokens created yet</p>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Create your first memecoin and start building your community
+                  </p>
+                  <Link to="/create">
+                    <Button className="glow-effect">
+                      Create Token
+                    </Button>
+                  </Link>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="orders">

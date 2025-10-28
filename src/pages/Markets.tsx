@@ -1,9 +1,10 @@
 import { useState } from "react";
 import Header from "@/components/Header";
-import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 const mockTokens = [
   {
@@ -13,7 +14,7 @@ const mockTokens = [
     price: "0.00045",
     change24h: 156.32,
     volume24h: "1,234,567",
-    liquidity: "3,456,789",
+    marketCap: "5,678,900",
     image: "🐕",
   },
   {
@@ -23,7 +24,7 @@ const mockTokens = [
     price: "0.00012",
     change24h: 89.45,
     volume24h: "987,654",
-    liquidity: "2,345,678",
+    marketCap: "3,456,789",
     image: "🐸",
   },
   {
@@ -33,7 +34,7 @@ const mockTokens = [
     price: "0.00089",
     change24h: -12.34,
     volume24h: "765,432",
-    liquidity: "1,876,543",
+    marketCap: "2,345,678",
     image: "🐱",
   },
   {
@@ -43,14 +44,13 @@ const mockTokens = [
     price: "0.00156",
     change24h: 234.56,
     volume24h: "2,345,678",
-    liquidity: "5,678,901",
+    marketCap: "8,901,234",
     image: "🚀",
   },
 ];
 
 const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const navigate = useNavigate();
 
   const filteredTokens = mockTokens.filter(
     (token) =>
@@ -59,107 +59,87 @@ const Markets = () => {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-6 py-12">
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold mb-2">Markets</h1>
-          <p className="text-muted-foreground text-sm">
-            Discover and trade meme tokens on Sei
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-neon-pink bg-clip-text text-transparent">
+            Trending Meme Tokens
+          </h1>
+          <p className="text-muted-foreground">
+            Discover and trade the hottest meme tokens on Sei
           </p>
         </div>
 
-        <div className="mb-8 relative max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="mb-6 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             placeholder="Search tokens..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 bg-card/50 border-border h-11"
+            className="pl-10 bg-card border-border"
           />
         </div>
 
-        <div className="bg-card/50 border border-border rounded-lg overflow-hidden backdrop-blur-sm">
-          {/* Table Header */}
-          <div className="grid grid-cols-[1fr_120px_140px_140px_140px_100px] gap-6 px-6 py-4 border-b border-border bg-muted/20 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            <div>Token</div>
-            <div className="text-right">Price</div>
-            <div className="text-right">24h Change</div>
-            <div className="text-right">24h Volume</div>
-            <div className="text-right">Liquidity</div>
-            <div></div>
-          </div>
-
-          {/* Table Body */}
-          <div className="divide-y divide-border/50">
-            {filteredTokens.map((token) => (
-              <div
-                key={token.id}
-                className="grid grid-cols-[1fr_120px_140px_140px_140px_100px] gap-6 px-6 py-5 data-table-row cursor-pointer"
-                onClick={() => navigate(`/trade/${token.id}`)}
-              >
-                {/* Token Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTokens.map((token) => (
+            <Card
+              key={token.id}
+              className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all hover:glow-effect cursor-pointer"
+            >
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center text-xl flex-shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-3xl">
                     {token.image}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-sm truncate">{token.name}</h3>
-                    <p className="text-xs text-muted-foreground">{token.symbol}</p>
+                  <div>
+                    <h3 className="text-xl font-bold">{token.name}</h3>
+                    <p className="text-muted-foreground">${token.symbol}</p>
                   </div>
                 </div>
 
-                {/* Price */}
-                <div className="text-right flex items-center justify-end">
-                  <span className="text-sm font-medium">{token.price} SEI</span>
-                </div>
-
-                {/* 24h Change */}
-                <div className="text-right flex items-center justify-end">
-                  {token.change24h > 0 ? (
-                    <div className="flex items-center gap-1.5 text-success">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm font-semibold">+{token.change24h}%</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Price</p>
+                    <p className="text-lg font-bold text-accent">
+                      {token.price} SEI
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">24h Change</p>
+                    <div className="flex items-center gap-1">
+                      {token.change24h > 0 ? (
+                        <>
+                          <TrendingUp className="w-4 h-4 text-success" />
+                          <span className="text-success font-bold">
+                            +{token.change24h}%
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="w-4 h-4 text-destructive" />
+                          <span className="text-destructive font-bold">
+                            {token.change24h}%
+                          </span>
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-destructive">
-                      <TrendingDown className="w-4 h-4" />
-                      <span className="text-sm font-semibold">{token.change24h}%</span>
-                    </div>
-                  )}
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Volume 24h</p>
+                    <p className="font-semibold">{token.volume24h} SEI</p>
+                  </div>
                 </div>
 
-                {/* Volume */}
-                <div className="text-right flex items-center justify-end">
-                  <span className="text-sm">{token.volume24h} SEI</span>
-                </div>
-
-                {/* Liquidity */}
-                <div className="text-right flex items-center justify-end">
-                  <span className="text-sm">{token.liquidity} SEI</span>
-                </div>
-
-                {/* Action */}
-                <div className="flex items-center justify-end">
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs px-4"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/trade/${token.id}`);
-                    }}
-                  >
-                    Trade
-                  </Button>
-                </div>
+                <Button className="w-full glow-effect-cyan">Trade</Button>
               </div>
-            ))}
-          </div>
+            </Card>
+          ))}
         </div>
 
         {filteredTokens.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
-            No tokens found
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">No tokens found</p>
           </div>
         )}
       </main>

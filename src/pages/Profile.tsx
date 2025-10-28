@@ -43,7 +43,7 @@ const Profile = () => {
               </p>
               <Button 
                 size="lg" 
-                className="glow-effect" 
+                className="shadow-lg shadow-primary/25" 
                 onClick={connectWallet}
                 disabled={isConnecting}
               >
@@ -62,7 +62,7 @@ const Profile = () => {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <Card className="p-8 bg-gradient-card border-border mb-8 glow-effect">
+          <Card className="p-10 mb-10 hover:border-primary/40 transition-all">
             <div className="flex flex-col md:flex-row items-start justify-between gap-4">
               <div className="flex items-center gap-6">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-4xl">
@@ -112,7 +112,7 @@ const Profile = () => {
               {mockHoldings.map((holding, index) => (
                 <Card
                   key={index}
-                  className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all"
+                  className="p-8 hover:border-primary/50 transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -142,14 +142,14 @@ const Profile = () => {
 
             <TabsContent value="created" className="space-y-4">
               {tokensLoading ? (
-                <Card className="p-12 bg-gradient-card border-border text-center">
+                <Card className="p-12 text-center">
                   <p className="text-muted-foreground">Loading your tokens...</p>
                 </Card>
               ) : userTokens && userTokens.length > 0 ? (
                 userTokens.map((token) => (
                   <Card
                     key={token.id}
-                    className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all"
+                    className="p-8 hover:border-primary/50 transition-all"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
@@ -177,14 +177,14 @@ const Profile = () => {
                   </Card>
                 ))
               ) : (
-                <Card className="p-12 bg-gradient-card border-border text-center">
+                <Card className="p-12 text-center">
                   <TrendingUp className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground text-lg mb-4">No tokens created yet</p>
                   <p className="text-sm text-muted-foreground mb-6">
                     Create your first memecoin and start building your community
                   </p>
                   <Link to="/create">
-                    <Button className="glow-effect">
+                    <Button className="shadow-lg shadow-primary/25">
                       Create Token
                     </Button>
                   </Link>
@@ -193,7 +193,7 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="orders">
-              <Card className="p-12 bg-gradient-card border-border text-center">
+              <Card className="p-12 text-center">
                 <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground text-lg mb-4">No open orders</p>
                 <p className="text-sm text-muted-foreground">

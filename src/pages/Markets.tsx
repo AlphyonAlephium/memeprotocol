@@ -81,11 +81,11 @@ const Markets = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredTokens.map((token) => (
             <Card
               key={token.id}
-              className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all hover:glow-effect cursor-pointer"
+              className="p-8 hover:border-primary/50 transition-all cursor-pointer group"
             >
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-4">
@@ -131,7 +131,7 @@ const Markets = () => {
                   </div>
                 </div>
 
-                <Button className="w-full glow-effect-cyan">Trade</Button>
+                <Button className="w-full shadow-lg shadow-primary/25">Trade</Button>
               </div>
             </Card>
           ))}

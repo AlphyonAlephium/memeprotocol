@@ -70,9 +70,9 @@ export default function Trade() {
           Back to Markets
         </Button>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Token Info */}
-          <Card className="lg:col-span-2 p-6 bg-gradient-card border-border">
+          <Card className="lg:col-span-2 p-8 hover:border-primary/40 transition-all">
             <div className="flex items-start gap-6 mb-8">
               <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                 {token.image_url ? (
@@ -128,7 +128,7 @@ export default function Trade() {
           </Card>
 
           {/* Trading Panel */}
-          <Card className="p-6 bg-gradient-card border-border h-fit sticky top-4">
+          <Card className="p-8 h-fit sticky top-4 hover:border-primary/40 transition-all">
             <Tabs defaultValue="buy" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="buy">Buy</TabsTrigger>
@@ -173,7 +173,7 @@ export default function Trade() {
                   />
                 </div>
 
-                <Button className="w-full glow-effect-cyan" size="lg">
+                <Button className="w-full shadow-lg shadow-primary/25" size="lg">
                   Buy {token.symbol}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
@@ -219,7 +219,7 @@ export default function Trade() {
                   />
                 </div>
 
-                <Button className="w-full glow-effect-cyan" size="lg">
+                <Button className="w-full shadow-lg shadow-primary/25" size="lg">
                   Sell {token.symbol}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">

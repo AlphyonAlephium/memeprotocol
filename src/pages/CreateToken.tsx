@@ -125,10 +125,10 @@ const CreateToken = () => {
                 </p>
               </div>
               {!isConnected ? (
-                <Button 
+                <Button
                   onClick={connectWallet} 
                   disabled={isConnecting}
-                  className="glow-effect-cyan"
+                  className="shadow-lg shadow-primary/25"
                 >
                   <Wallet className="w-4 h-4 mr-2" />
                   {isConnecting ? "Connecting..." : "Connect Wallet"}
@@ -143,8 +143,8 @@ const CreateToken = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="p-6 bg-gradient-card border-border">
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="p-8 hover:border-primary/40 transition-all">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label htmlFor="name">Token Name</Label>
@@ -256,8 +256,8 @@ const CreateToken = () => {
 
                 <Button
                   type="submit"
-                  className="w-full glow-effect text-lg h-12"
-                  disabled={!isConnected || !formData.name || !formData.symbol || !formData.description || !imageFile || isCreating || isUploading}
+                  className="w-full text-lg h-14 shadow-lg shadow-primary/25"
+                  disabled={!isConnected || isCreating || !formData.name || !formData.symbol || !formData.description || !imageFile || isCreating || isUploading}
                 >
                   <Rocket className="w-5 h-5 mr-2" />
                   {isUploading ? "Uploading..." : isCreating ? "Creating..." : isConnected ? "Create Token" : "Connect Wallet to Create"}
@@ -265,8 +265,8 @@ const CreateToken = () => {
               </form>
             </Card>
 
-            <Card className="p-6 bg-gradient-card border-border">
-              <h3 className="text-xl font-bold mb-4">Preview</h3>
+            <Card className="p-8 hover:border-primary/40 transition-all">
+              <h3 className="text-2xl font-bold mb-6">Preview</h3>
               <div className="space-y-6">
                 <div className="aspect-square rounded-2xl bg-secondary flex items-center justify-center">
                   {formData.image ? (

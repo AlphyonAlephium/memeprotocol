@@ -109,9 +109,9 @@ const ManageToken = () => {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-8">
             {/* Token Info Card */}
-            <Card className="lg:col-span-1 p-6 bg-gradient-card border-border">
+            <Card className="lg:col-span-1 p-8 hover:border-primary/40 transition-all">
               <div className="space-y-6">
                 <div className="aspect-square rounded-2xl bg-secondary overflow-hidden">
                   <img
@@ -170,20 +170,20 @@ const ManageToken = () => {
           </div>
 
           {/* Additional Management Features (Future) */}
-          <div className="mt-8 grid md:grid-cols-3 gap-6">
-            <Card className="p-6 bg-gradient-card border-border opacity-50">
+          <div className="mt-8 grid md:grid-cols-3 gap-8">
+            <Card className="p-8 opacity-50">
               <h3 className="font-semibold mb-2">Trading Analytics</h3>
               <p className="text-sm text-muted-foreground">View volume, price charts, and holder distribution</p>
               <p className="text-xs text-accent mt-4">Coming Soon</p>
             </Card>
             
-            <Card className="p-6 bg-gradient-card border-border opacity-50">
+            <Card className="p-8 opacity-50">
               <h3 className="font-semibold mb-2">Market Graduation</h3>
               <p className="text-sm text-muted-foreground">Move to Sei's native CLOB when market cap threshold is reached</p>
               <p className="text-xs text-accent mt-4">Coming Soon</p>
             </Card>
             
-            <Card className="p-6 bg-gradient-card border-border opacity-50">
+            <Card className="p-8 opacity-50">
               <h3 className="font-semibold mb-2">Community Tools</h3>
               <p className="text-sm text-muted-foreground">Airdrops, token burns, and holder rewards</p>
               <p className="text-xs text-accent mt-4">Coming Soon</p>

@@ -87,7 +87,7 @@ const AddLiquidityForm = ({ tokenSymbol, tokenName, isOwner }: AddLiquidityFormP
   }
 
   return (
-    <Card className="p-8 bg-gradient-to-br from-primary/10 via-accent/10 to-neon-pink/10 border-primary/20">
+    <Card className="p-10 hover:border-primary/40 transition-all">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-2">
@@ -119,7 +119,7 @@ const AddLiquidityForm = ({ tokenSymbol, tokenName, isOwner }: AddLiquidityFormP
         {!isConnected && (
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
             <p className="text-sm font-medium">Connect your wallet to add liquidity</p>
-            <Button onClick={connectWallet} className="glow-effect-cyan">
+            <Button onClick={connectWallet} className="shadow-lg shadow-primary/25">
               <Wallet className="w-4 h-4 mr-2" />
               Connect Wallet
             </Button>
@@ -203,9 +203,9 @@ const AddLiquidityForm = ({ tokenSymbol, tokenName, isOwner }: AddLiquidityFormP
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full glow-effect text-xl h-14"
-            disabled={!isConnected || isAddingLiquidity || !tokenAmount || !seiAmount}
-          >
+                  className="w-full text-lg h-14 shadow-lg shadow-primary/25"
+                  disabled={!isConnected || isAddingLiquidity || !tokenAmount || !seiAmount}
+                >
             <Droplets className="w-6 h-6 mr-2" />
             {isAddingLiquidity ? "Creating Pool..." : "Create Liquidity Pool"}
           </Button>

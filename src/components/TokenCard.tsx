@@ -13,7 +13,7 @@ export const TokenCard = ({ token, showTrending = false }: TokenCardProps) => {
   const navigate = useNavigate();
 
   return (
-    <Card className="p-5 bg-gradient-card border-border/50 hover:border-primary/30 transition-all card-shadow backdrop-blur cursor-pointer group">
+    <Card className="p-6 hover:border-primary/40 transition-all cursor-pointer group">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-secondary/50 flex items-center justify-center overflow-hidden">

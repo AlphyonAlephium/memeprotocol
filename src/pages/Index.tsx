@@ -44,29 +44,25 @@ const Index = () => {
       
       <main>
         {/* Hero Section */}
-        <section className="relative overflow-hidden min-h-[500px] flex items-center">
+        <section className="relative overflow-hidden">
           <MemeTokenAnimation />
-          <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
-                Launch Your
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {" "}Meme Token{" "}
-                </span>
-                on Sei
+          <div className="container mx-auto px-6 py-24 md:py-32 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
+                Launch Your Meme Token on Sei
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground/80 mb-8 max-w-2xl mx-auto">
-                Create and trade meme tokens on Sei's blazing-fast CLOB
+              <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+                Create and trade meme tokens with lightning speed on Sei's native CLOB
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/create">
-                  <Button size="lg" className="bg-primary/90 hover:bg-primary text-base px-8 h-12">
+                  <Button size="lg" className="h-12 px-8 text-base font-medium hover-glow">
                     <Rocket className="w-4 h-4 mr-2" />
-                    Launch Token (20 SEI)
+                    Launch Token
                   </Button>
                 </Link>
                 <Link to="/markets">
-                  <Button size="lg" variant="secondary" className="text-base px-8 h-12 bg-secondary/50 hover:bg-secondary">
+                  <Button size="lg" variant="secondary" className="h-12 px-8 text-base font-medium">
                     Explore Markets
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -77,15 +73,15 @@ const Index = () => {
         </section>
 
         {/* Stats Section */}
-        <section className="border-y border-border/50 bg-card/20 backdrop-blur">
-          <div className="container mx-auto px-4 py-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <section className="border-y border-border bg-card/30 backdrop-blur-sm">
+          <div className="container mx-auto px-6 py-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {stats.map((stat, index) => (
                 <div key={index} className="text-center">
-                  <p className="text-2xl md:text-3xl font-bold text-primary mb-1">
+                  <p className="text-3xl font-bold mb-1">
                     {stat.value}
                   </p>
-                  <p className="text-xs text-muted-foreground/60">{stat.label}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -93,29 +89,29 @@ const Index = () => {
         </section>
 
         {/* Features Section */}
-        <section className="container mx-auto px-4 py-16">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+        <section className="container mx-auto px-6 py-20">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold mb-3">
               Why Choose MemeMarket?
             </h2>
-            <p className="text-base text-muted-foreground/70 max-w-2xl mx-auto">
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
               The fastest platform for meme token creation and trading on Sei
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
                 <Card
                   key={index}
-                  className="p-5 bg-gradient-card border-border/50 hover:border-primary/30 transition-all card-shadow backdrop-blur"
+                  className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all hover-glow backdrop-blur-sm"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mb-3">
-                    <Icon className="w-5 h-5 text-primary" />
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                    <Icon className="w-6 h-6 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground/70">{feature.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </Card>
               );
             })}
@@ -129,17 +125,17 @@ const Index = () => {
         <TrendingTokensSection />
 
         {/* CTA Section */}
-        <section className="container mx-auto px-4 py-16">
-          <Card className="p-10 bg-gradient-card border-primary/20 card-shadow backdrop-blur">
+        <section className="container mx-auto px-6 py-20">
+          <Card className="p-12 bg-gradient-card border-primary/30 card-shadow backdrop-blur-sm hover-glow">
             <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <h2 className="text-4xl font-bold mb-4">
                 Ready to Go Viral?
               </h2>
-              <p className="text-base text-muted-foreground/70 mb-6">
+              <p className="text-sm text-muted-foreground mb-8">
                 Join creators launching the next generation of meme tokens
               </p>
               <Link to="/create">
-                <Button size="lg" className="bg-primary/90 hover:bg-primary text-base px-10 h-12">
+                <Button size="lg" className="h-12 px-10 text-base font-medium hover-glow">
                   <Rocket className="w-4 h-4 mr-2" />
                   Start Creating Now
                 </Button>
@@ -150,8 +146,8 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-6">
-        <div className="container mx-auto px-4 text-center text-muted-foreground/50 text-sm">
+      <footer className="border-t border-border py-8">
+        <div className="container mx-auto px-6 text-center text-muted-foreground text-xs">
           <p>© 2025 MemeMarket Protocol. Built on Sei.</p>
         </div>
       </footer>

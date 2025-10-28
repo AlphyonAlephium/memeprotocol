@@ -51,14 +51,8 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        neon: {
-          purple: "hsl(var(--neon-purple))",
-          cyan: "hsl(var(--neon-cyan))",
-          pink: "hsl(var(--neon-pink))",
-        },
       },
       backgroundImage: {
-        'gradient-hero': 'var(--gradient-hero)',
         'gradient-card': 'var(--gradient-card)',
       },
       borderRadius: {

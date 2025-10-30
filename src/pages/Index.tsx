@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Rocket, TrendingUp, Zap, Shield } from "lucide-react";
 import { NewTokensSection } from "@/components/NewTokensSection";
 import { TrendingTokensSection } from "@/components/TrendingTokensSection";
-import { AnimatedText } from "@/components/AnimatedText";
 
 const Index = () => {
   const features = [
@@ -46,13 +45,10 @@ const Index = () => {
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-24 md:py-32">
           <div className="max-w-5xl mx-auto text-center">
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight">
-              <AnimatedText 
-                text="Launch Your Meme Token in Minutes"
-                className="bg-gradient-to-r from-white via-neon-cyan to-neon-pink bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(168,85,247,0.4)]"
-              />
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8 bg-gradient-to-r from-primary via-accent to-neon-pink bg-clip-text text-transparent leading-tight">
+              Launch Your Meme Token in Minutes
             </h1>
-            <p className="text-xl md:text-2xl text-foreground/90 mb-12 max-w-2xl mx-auto opacity-0 animate-fade-in" style={{ animationDelay: "1s", animationFillMode: "both" }}>
+            <p className="text-xl md:text-2xl text-muted-foreground/80 mb-12 max-w-2xl mx-auto">
               Create, trade, and launch tokens instantly on Sei's blazing-fast CLOB
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">

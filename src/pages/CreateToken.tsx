@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Upload, Rocket, AlertCircle, Wallet, ImageIcon } from "lucide-react";
+import { Upload, Rocket, AlertCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/WalletContext";
 import { useTokenCreation } from "@/hooks/useTokenCreation";
@@ -27,6 +27,35 @@ const CreateToken = () => {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // SEO: set title, description, and canonical link
+  useEffect(() => {
+    document.title = "Create Meme Token | Launchpad";
+    const ensureTag = (selector: string, create: () => Element) => {
+      const el = document.querySelector(selector);
+      if (el) return el as HTMLElement;
+      const created = create();
+      document.head.appendChild(created);
+      return created as HTMLElement;
+    };
+
+    const metaDesc = ensureTag('meta[name="description"]', () => {
+      const m = document.createElement("meta");
+      m.setAttribute("name", "description");
+      return m;
+    });
+    metaDesc.setAttribute(
+      "content",
+      "Create and launch a meme token on Sei. Upload an image, set supply and details, then deploy in minutes."
+    );
+
+    const canonical = ensureTag('link[rel="canonical"]', () => {
+      const l = document.createElement("link");
+      l.setAttribute("rel", "canonical");
+      return l;
+    });
+    canonical.setAttribute("href", window.location.href);
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,7 +141,7 @@ const CreateToken = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -155,7 +184,7 @@ const CreateToken = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="mt-2 bg-secondary border-border"
+                    className="mt-2"
                     required
                   />
                 </div>
@@ -169,7 +198,7 @@ const CreateToken = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, symbol: e.target.value.toUpperCase() })
                     }
-                    className="mt-2 bg-secondary border-border"
+                    className="mt-2"
                     maxLength={10}
                     required
                   />
@@ -185,7 +214,7 @@ const CreateToken = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, supply: e.target.value })
                     }
-                    className="mt-2 bg-secondary border-border"
+                    className="mt-2"
                     min="1"
                     required
                   />
@@ -203,7 +232,7 @@ const CreateToken = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    className="mt-2 bg-secondary border-border min-h-[120px]"
+                    className="mt-2 min-h-[120px]"
                     required
                   />
                 </div>
@@ -222,9 +251,10 @@ const CreateToken = () => {
                     <div className="mt-2 border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
                       {formData.image ? (
                         <div className="relative">
-                          <img 
-                            src={formData.image} 
-                            alt="Token preview" 
+                          <img
+                            src={formData.image}
+                            alt={`${formData.name || 'Token'} image preview`}
+                            loading="lazy"
                             className="w-32 h-32 mx-auto object-cover rounded-lg mb-2"
                           />
                           <p className="text-sm text-primary">Click to change image</p>
@@ -244,7 +274,7 @@ const CreateToken = () => {
                   </label>
                 </div>
 
-                <div className="bg-secondary/50 border border-border rounded-lg p-4 flex gap-3">
+                <div className="bg-card/30 backdrop-blur-md border border-border/30 rounded-lg p-4 flex gap-3">
                   <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-semibold mb-1">Creation Fee: 20 SEI</p>
@@ -257,6 +287,7 @@ const CreateToken = () => {
                 <Button
                   type="submit"
                   className="w-full text-lg h-14 shadow-lg shadow-primary/25"
+                  aria-busy={isCreating || isUploading}
                   disabled={!isConnected || isCreating || !formData.name || !formData.symbol || !formData.description || !imageFile || isCreating || isUploading}
                 >
                   <Rocket className="w-5 h-5 mr-2" />
@@ -268,11 +299,12 @@ const CreateToken = () => {
             <Card className="p-8 hover:border-primary/40 transition-all">
               <h3 className="text-2xl font-bold mb-6">Preview</h3>
               <div className="space-y-6">
-                <div className="aspect-square rounded-2xl bg-secondary flex items-center justify-center">
+                <div className="aspect-square rounded-2xl bg-card/30 backdrop-blur-md border border-border/30 flex items-center justify-center">
                   {formData.image ? (
                     <img
                       src={formData.image}
-                      alt="Token preview"
+                      alt={`${formData.name || 'Token'} image preview`}
+                      loading="lazy"
                       className="w-full h-full object-cover rounded-2xl"
                     />
                   ) : (
@@ -294,11 +326,11 @@ const CreateToken = () => {
                 </p>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-secondary rounded-lg p-4">
+                  <div className="bg-card/30 backdrop-blur-md border border-border/30 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground mb-1">Total Supply</p>
                     <p className="text-lg font-bold">{parseInt(formData.supply || "0").toLocaleString()}</p>
                   </div>
-                  <div className="bg-secondary rounded-lg p-4">
+                  <div className="bg-card/30 backdrop-blur-md border border-border/30 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground mb-1">Blockchain</p>
                     <p className="text-lg font-bold">Sei</p>
                   </div>

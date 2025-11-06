@@ -1,96 +1,99 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice } from "@cosmjs/stargate";
-import { SEI_CONFIG } from "@/config/contracts";
-import { toast } from "sonner";
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { ethers } from 'ethers';
 
-interface WalletContextType {
+// Define the shape of the context state
+interface WalletContextState {
   address: string | null;
-  isConnected: boolean;
-  client: SigningCosmWasmClient | null;
-  balance: string | null;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  isConnecting: boolean;
+  provider: ethers.BrowserProvider | null;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
+// Create the context with a default undefined value
+const WalletContext = createContext<WalletContextState | undefined>(undefined);
 
-export const WalletProvider = ({ children }: { children: ReactNode }) => {
+// Define the props for the provider component
+interface WalletProviderProps {
+  children: ReactNode;
+}
+
+export const WalletProvider = ({ children }: WalletProviderProps) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [client, setClient] = useState<SigningCosmWasmClient | null>(null);
-  const [balance, setBalance] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
 
+  // Function to connect to the user's EVM wallet
   const connectWallet = async () => {
-    setIsConnecting(true);
-    try {
-      const wallet = window.compass || window.fin || window.leap;
-      if (!wallet) throw new Error("No Sei wallet detected!");
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const userAddress = accounts[0];
+        setAddress(userAddress);
 
-      await wallet.enable(SEI_CONFIG.chainId);
-      const offlineSigner = await wallet.getOfflineSignerAuto(SEI_CONFIG.chainId);
-      const accounts = await offlineSigner.getAccounts();
-      const userAddress = accounts[0].address;
+        // Initialize ethers provider
+        const browserProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(browserProvider);
+        
+        console.log("Wallet connected:", userAddress);
 
-      const signingClient = await SigningCosmWasmClient.connectWithSigner(
-        SEI_CONFIG.rpcEndpoint,
-        offlineSigner,
-        {
-          gasPrice: GasPrice.fromString("3.5usei"),
-        }
-      );
-
-      setAddress(userAddress);
-      setClient(signingClient);
-      const bal = await signingClient.getBalance(userAddress, "usei");
-      setBalance((Number(bal.amount) / 1_000_000).toFixed(2));
-      localStorage.setItem("wallet_connected", "true");
-    } catch (error: any) {
-      console.error("Failed to connect wallet:", error);
-      toast.error(`Wallet Connection Failed: ${error.message}`);
-      throw error;
-    } finally {
-      setIsConnecting(false);
+      } catch (error) {
+        console.error("User denied account access or error occurred:", error);
+      }
+    } else {
+      console.log('MetaMask, Compass, or other EVM wallet is not installed!');
+      alert('Please install an EVM-compatible wallet like MetaMask or Compass.');
     }
   };
 
   const disconnectWallet = () => {
     setAddress(null);
-    setClient(null);
-    setBalance(null);
-    localStorage.removeItem("wallet_connected");
-    toast.success("Wallet disconnected");
+    setProvider(null);
+    console.log("Wallet disconnected");
   };
 
+  // Listen for account changes
   useEffect(() => {
-    const wasConnected = localStorage.getItem("wallet_connected");
-    if (wasConnected === "true") {
-      connectWallet().catch(console.error);
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+          const browserProvider = new ethers.BrowserProvider(window.ethereum);
+          setProvider(browserProvider);
+        } else {
+          // If accounts array is empty, it means the user has disconnected.
+          disconnectWallet();
+        }
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+      // Cleanup listener on component unmount
+      return () => {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      };
     }
   }, []);
 
+
   return (
-    <WalletContext.Provider
-      value={{ address, isConnected: !!address, client, balance, connectWallet, disconnectWallet, isConnecting }}
-    >
+    <WalletContext.Provider value={{ address, connectWallet, disconnectWallet, provider }}>
       {children}
     </WalletContext.Provider>
   );
 };
 
+// Custom hook to use the wallet context
 export const useWallet = () => {
   const context = useContext(WalletContext);
-  if (!context) {
-    throw new Error("useWallet must be used within WalletProvider");
+  if (context === undefined) {
+    throw new Error('useWallet must be used within a WalletProvider');
   }
   return context;
 };
 
+// Add window.ethereum to the global Window interface
 declare global {
   interface Window {
-    compass?: any;
-    fin?: any;
-    leap?: any;
+    ethereum?: any;
   }
 }

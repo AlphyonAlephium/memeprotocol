@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Droplets, TrendingUp, Wallet } from "lucide-react";
-import { useWallet } from "@/contexts/WalletContext";
+import { useWallet, type WalletContextState } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 
 interface AddLiquidityFormProps {

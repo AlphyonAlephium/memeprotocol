@@ -1,15 +1,15 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { ethers } from 'ethers';
 
-// Explicitly export the interface
 export interface WalletContextState {
   address: string | null;
   provider: ethers.BrowserProvider | null;
   isConnected: boolean;
   balance: string;
   isConnecting: boolean;
-  connectWallet: () => Promise<void>;
+  connectWallet: () => void;
   disconnectWallet: () => void;
+  setWalletConnection: (provider: ethers.BrowserProvider, address: string) => void;
 }
 
 const WalletContext = createContext<WalletContextState | undefined>(undefined);
@@ -23,6 +23,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [balance, setBalance] = useState<string>("0");
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [showSelector, setShowSelector] = useState<boolean>(false);
 
   const fetchBalance = async (userAddress: string, browserProvider: ethers.BrowserProvider) => {
     try {
@@ -34,30 +35,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
   };
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      setIsConnecting(true);
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const userAddress = accounts[0];
-        setAddress(userAddress);
+  const connectWallet = () => {
+    setShowSelector(true);
+  };
 
-        const browserProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(browserProvider);
-        
-        await fetchBalance(userAddress, browserProvider);
-        
-        console.log("Wallet connected:", userAddress);
-      } catch (error) {
-        console.error("User denied account access or error occurred:", error);
-      } finally {
-        setIsConnecting(false);
-      }
-    } else {
-      console.log('MetaMask, Compass, or other EVM wallet is not installed!');
-      alert('Please install an EVM-compatible wallet like MetaMask or Compass.');
-      setIsConnecting(false);
-    }
+  const setWalletConnection = async (browserProvider: ethers.BrowserProvider, userAddress: string) => {
+    setAddress(userAddress);
+    setProvider(browserProvider);
+    await fetchBalance(userAddress, browserProvider);
+    console.log("Wallet connected:", userAddress);
   };
 
   const disconnectWallet = () => {
@@ -68,25 +54,26 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (window.ethereum) {
+    if (provider && address) {
       const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length > 0) {
           setAddress(accounts[0]);
-          const browserProvider = new ethers.BrowserProvider(window.ethereum);
-          setProvider(browserProvider);
-          fetchBalance(accounts[0], browserProvider);
+          fetchBalance(accounts[0], provider);
         } else {
           disconnectWallet();
         }
       };
 
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      const providerInstance = provider.provider as any;
+      if (providerInstance?.on) {
+        providerInstance.on('accountsChanged', handleAccountsChanged);
 
-      return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      };
+        return () => {
+          providerInstance.removeListener?.('accountsChanged', handleAccountsChanged);
+        };
+      }
     }
-  }, []);
+  }, [provider, address]);
 
   const isConnected = !!address;
 
@@ -98,13 +85,36 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     isConnecting,
     connectWallet,
     disconnectWallet,
+    setWalletConnection,
   };
 
   return (
     <WalletContext.Provider value={value}>
       {children}
+      {/* Dynamically import WalletSelector to avoid circular deps */}
+      {showSelector && (
+        <WalletSelectorLoader 
+          onClose={() => setShowSelector(false)}
+          onConnect={setWalletConnection}
+        />
+      )}
     </WalletContext.Provider>
   );
+};
+
+// Lazy load WalletSelector component
+const WalletSelectorLoader = ({ onClose, onConnect }: { onClose: () => void; onConnect: (provider: ethers.BrowserProvider, address: string) => void }) => {
+  const [WalletSelector, setWalletSelector] = useState<any>(null);
+
+  useEffect(() => {
+    import('@/components/WalletSelector').then(module => {
+      setWalletSelector(() => module.WalletSelector);
+    });
+  }, []);
+
+  if (!WalletSelector) return null;
+
+  return <WalletSelector open={true} onClose={onClose} onConnect={onConnect} />;
 };
 
 export const useWallet = (): WalletContextState => {

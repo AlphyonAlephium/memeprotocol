@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Rocket, TrendingUp, PlusCircle, User, Wallet, LogOut } from "lucide-react";
-import { useWallet } from "@/contexts/WalletContext";
+import { useWallet, type WalletContextState } from "@/contexts/WalletContext";
 
 const Header = () => {
   const location = useLocation();

@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Upload, Rocket, AlertCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/WalletContext";
-import { useTokenCreation } from "@/hooks/useTokenCreation";
+import { useCreateEvmToken } from "@/hooks/useCreateEvmToken";
 import { supabase } from "@/integrations/supabase/client";
 
 const CreateToken = () => {
   const navigate = useNavigate();
   const { isConnected, address, balance, connectWallet, isConnecting } = useWallet();
-  const { createToken, isCreating } = useTokenCreation();
+  const { createToken, isCreating } = useCreateEvmToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -115,22 +115,36 @@ const CreateToken = () => {
         .from("token-images")
         .getPublicUrl(filePath);
 
-      // Create token with uploaded image URL
-      const result = await createToken({
-        name: formData.name,
-        symbol: formData.symbol,
-        imageUrl: publicUrl,
-        description: formData.description,
-        supply: formData.supply,
+      // Create token using EVM contract
+      await createToken({
+        amount: parseInt(formData.supply),
       });
 
-      if (result.success && result.tokenId && result.tokenAddress) {
-        toast.success("Token created successfully! Redirecting to management page...");
-        // Redirect to manage page after short delay
-        setTimeout(() => {
-          navigate(`/manage/${result.tokenId}/${result.tokenAddress}`);
-        }, 1500);
+      // Save token metadata to database
+      const { data: tokenData, error: dbError } = await supabase
+        .from("tokens")
+        .insert({
+          creator_address: address,
+          name: formData.name,
+          symbol: formData.symbol,
+          description: formData.description,
+          image_url: publicUrl,
+          total_supply: formData.supply,
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error("DB Error:", dbError);
+        toast.error("Token minted but failed to save metadata");
+        return;
       }
+
+      toast.success("Token created successfully!");
+      // Redirect to homepage after short delay
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
     } catch (error) {
       // Error already handled in useTokenCreation
     } finally {

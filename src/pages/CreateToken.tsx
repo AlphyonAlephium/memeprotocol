@@ -1,5 +1,5 @@
 import { CreateTokenForm } from "@/components/CreateTokenForm";
-import { Header } from "@/components/Header";
+import Header from "@/components/Header";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCreateEvmToken } from "@/hooks/useCreateEvmToken"; // Import the NEW hook
 

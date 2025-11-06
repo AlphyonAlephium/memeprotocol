@@ -46,12 +46,12 @@ export const WalletSelector = ({ open, onClose, onConnect }: WalletSelectorProps
       });
     }
 
-    // Check for Compass (Sei wallet)
-    if (window.compass) {
+    // Check for Compass (Sei wallet) - Compass exposes EVM provider differently
+    if (window.compass?.ethereum) {
       detectedWallets.push({
         name: "Compass",
         icon: "🧭",
-        provider: window.compass,
+        provider: window.compass.ethereum,
         detected: true,
       });
     }
@@ -175,6 +175,8 @@ export const WalletSelector = ({ open, onClose, onConnect }: WalletSelectorProps
 declare global {
   interface Window {
     ethereum?: any;
-    compass?: any;
+    compass?: {
+      ethereum?: any;
+    };
   }
 }

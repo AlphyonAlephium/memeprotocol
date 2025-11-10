@@ -1,15 +1,16 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { ethers } from 'ethers';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import { ethers, JsonRpcProvider } from "ethers";
 
-export interface WalletContextState {
+// THE RPC ENDPOINT FOR THE SEI TESTNET
+const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
+
+// Define the shape of the context state
+interface WalletContextState {
   address: string | null;
-  provider: ethers.BrowserProvider | null;
-  isConnected: boolean;
-  balance: string;
-  isConnecting: boolean;
-  connectWallet: () => void;
+  connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  setWalletConnection: (provider: ethers.BrowserProvider, address: string) => void;
+  provider: JsonRpcProvider | null; // This will be our stable, configured provider
+  getSigner: () => Promise<ethers.JsonRpcSigner | null>; // Function to get a signer
 }
 
 const WalletContext = createContext<WalletContextState | undefined>(undefined);
@@ -18,109 +19,65 @@ interface WalletProviderProps {
   children: ReactNode;
 }
 
-export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
+export const WalletProvider = ({ children }: WalletProviderProps) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [balance, setBalance] = useState<string>("0");
-  const [isConnecting, setIsConnecting] = useState<boolean>(false);
-  const [showSelector, setShowSelector] = useState<boolean>(false);
 
-  const fetchBalance = async (userAddress: string, browserProvider: ethers.BrowserProvider) => {
-    try {
-      const balanceWei = await browserProvider.getBalance(userAddress);
-      const balanceEth = ethers.formatEther(balanceWei);
-      setBalance(balanceEth);
-    } catch (error) {
-      console.error("Error fetching balance:", error);
+  // Create a stable, configured JSON RPC Provider. This solves the ENS issue.
+  const [provider] = useState<JsonRpcProvider>(
+    () => new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true }),
+  );
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+          console.log("Wallet connected:", accounts[0]);
+        }
+      } catch (error) {
+        console.error("User denied account access or error occurred:", error);
+      }
+    } else {
+      alert("Please install an EVM-compatible wallet like MetaMask.");
     }
   };
 
-  const connectWallet = () => {
-    setShowSelector(true);
-  };
-
-  const setWalletConnection = async (browserProvider: ethers.BrowserProvider, userAddress: string) => {
-    setAddress(userAddress);
-    setProvider(browserProvider);
-    await fetchBalance(userAddress, browserProvider);
-    console.log("Wallet connected:", userAddress);
+  const getSigner = async (): Promise<ethers.JsonRpcSigner | null> => {
+    if (typeof window.ethereum === "undefined") return null;
+    // We get a fresh signer each time, which is best practice
+    const browserProvider = new ethers.BrowserProvider(window.ethereum);
+    return await browserProvider.getSigner();
   };
 
   const disconnectWallet = () => {
     setAddress(null);
-    setProvider(null);
-    setBalance("0");
     console.log("Wallet disconnected");
   };
 
   useEffect(() => {
-    if (provider && address) {
+    if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setAddress(accounts[0]);
-          fetchBalance(accounts[0], provider);
-        } else {
-          disconnectWallet();
-        }
+        setAddress(accounts.length > 0 ? accounts[0] : null);
       };
-
-      const providerInstance = provider.provider as any;
-      if (providerInstance?.on) {
-        providerInstance.on('accountsChanged', handleAccountsChanged);
-
-        return () => {
-          providerInstance.removeListener?.('accountsChanged', handleAccountsChanged);
-        };
-      }
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      return () => {
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+      };
     }
-  }, [provider, address]);
-
-  const isConnected = !!address;
-
-  const value: WalletContextState = {
-    address,
-    provider,
-    isConnected,
-    balance,
-    isConnecting,
-    connectWallet,
-    disconnectWallet,
-    setWalletConnection,
-  };
+  }, []);
 
   return (
-    <WalletContext.Provider value={value}>
+    <WalletContext.Provider value={{ address, connectWallet, disconnectWallet, provider, getSigner }}>
       {children}
-      {/* Dynamically import WalletSelector to avoid circular deps */}
-      {showSelector && (
-        <WalletSelectorLoader 
-          onClose={() => setShowSelector(false)}
-          onConnect={setWalletConnection}
-        />
-      )}
     </WalletContext.Provider>
   );
 };
 
-// Lazy load WalletSelector component
-const WalletSelectorLoader = ({ onClose, onConnect }: { onClose: () => void; onConnect: (provider: ethers.BrowserProvider, address: string) => void }) => {
-  const [WalletSelector, setWalletSelector] = useState<any>(null);
-
-  useEffect(() => {
-    import('@/components/WalletSelector').then(module => {
-      setWalletSelector(() => module.WalletSelector);
-    });
-  }, []);
-
-  if (!WalletSelector) return null;
-
-  return <WalletSelector open={true} onClose={onClose} onConnect={onConnect} />;
-};
-
-export const useWallet = (): WalletContextState => {
+export const useWallet = () => {
   const context = useContext(WalletContext);
   if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
+    throw new Error("useWallet must be used within a WalletProvider");
   }
   return context;
 };

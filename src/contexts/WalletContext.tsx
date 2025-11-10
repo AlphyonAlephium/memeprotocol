@@ -1,75 +1,96 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from "react";
 import { ethers, JsonRpcProvider } from "ethers";
+import { WalletSelector, EIP6963ProviderDetail } from "@/components/WalletSelector";
 
-// THE RPC ENDPOINT FOR THE SEI TESTNET
 const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
 
-// Define the shape of the context state
 interface WalletContextState {
   address: string | null;
-  connectWallet: () => Promise<void>;
+  openWalletModal: () => void;
   disconnectWallet: () => void;
-  provider: JsonRpcProvider | null; // This will be our stable, configured provider
-  getSigner: () => Promise<ethers.JsonRpcSigner | null>; // Function to get a signer
+  provider: JsonRpcProvider | null;
+  getSigner: () => Promise<ethers.JsonRpcSigner | null>;
+  isConnecting: boolean;
 }
 
 const WalletContext = createContext<WalletContextState | undefined>(undefined);
 
-interface WalletProviderProps {
-  children: ReactNode;
-}
-
-export const WalletProvider = ({ children }: WalletProviderProps) => {
+export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [address, setAddress] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<any | null>(null);
 
-  // Create a stable, configured JSON RPC Provider. This solves the ENS issue.
   const [provider] = useState<JsonRpcProvider>(
     () => new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true }),
   );
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        if (accounts.length > 0) {
-          setAddress(accounts[0]);
-          console.log("Wallet connected:", accounts[0]);
-        }
-      } catch (error) {
-        console.error("User denied account access or error occurred:", error);
+  useEffect(() => {
+    const onAnnounceProvider = (event: Event) => {
+      const { detail } = event as CustomEvent<EIP6963ProviderDetail>;
+      setDiscoveredProviders((prev) => {
+        if (prev.find((p) => p.info.uuid === detail.info.uuid)) return prev;
+        return [...prev, detail];
+      });
+    };
+
+    window.addEventListener("eip6963:announceProvider", onAnnounceProvider);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    return () => window.removeEventListener("eip6963:announceProvider", onAnnounceProvider);
+  }, []);
+
+  const openWalletModal = () => setIsModalOpen(true);
+
+  const handleSelectProvider = useCallback(async (providerDetail: EIP6963ProviderDetail) => {
+    setIsModalOpen(false);
+    setIsConnecting(true);
+    try {
+      const accounts = await providerDetail.provider.request({ method: "eth_requestAccounts" });
+      if (accounts.length > 0) {
+        setAddress(accounts[0]);
+        setSelectedProvider(() => providerDetail.provider);
       }
-    } else {
-      alert("Please install an EVM-compatible wallet like MetaMask.");
+    } catch (error) {
+      console.error("User denied account access:", error);
+    } finally {
+      setIsConnecting(false);
     }
-  };
+  }, []);
 
   const getSigner = async (): Promise<ethers.JsonRpcSigner | null> => {
-    if (typeof window.ethereum === "undefined") return null;
-    // We get a fresh signer each time, which is best practice
-    const browserProvider = new ethers.BrowserProvider(window.ethereum);
+    if (!selectedProvider) return null;
+    const browserProvider = new ethers.BrowserProvider(selectedProvider);
     return await browserProvider.getSigner();
   };
 
   const disconnectWallet = () => {
     setAddress(null);
-    console.log("Wallet disconnected");
+    setSelectedProvider(null);
   };
 
   useEffect(() => {
-    if (window.ethereum) {
+    if (selectedProvider && selectedProvider.on) {
       const handleAccountsChanged = (accounts: string[]) => {
         setAddress(accounts.length > 0 ? accounts[0] : null);
       };
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      selectedProvider.on("accountsChanged", handleAccountsChanged);
       return () => {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        selectedProvider.removeListener("accountsChanged", handleAccountsChanged);
       };
     }
-  }, []);
+  }, [selectedProvider]);
 
   return (
-    <WalletContext.Provider value={{ address, connectWallet, disconnectWallet, provider, getSigner }}>
+    <WalletContext.Provider value={{ address, openWalletModal, disconnectWallet, provider, getSigner, isConnecting }}>
       {children}
+      <WalletSelector
+        isOpen={isModalOpen}
+        providers={discoveredProviders}
+        onClose={() => setIsModalOpen(false)}
+        onSelectProvider={handleSelectProvider}
+      />
     </WalletContext.Provider>
   );
 };
@@ -81,9 +102,3 @@ export const useWallet = () => {
   }
   return context;
 };
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}

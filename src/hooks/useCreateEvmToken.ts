@@ -1,62 +1,89 @@
-import { useState } from "react";
-import { ethers, JsonRpcProvider } from "ethers"; // Import JsonRpcProvider
-import { toast } from "sonner";
+import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import { ethers, JsonRpcProvider } from "ethers";
 
-import { useWallet } from "@/contexts/WalletContext";
-import { MEME_TOKEN_CONTRACT_ADDRESS } from "@/config/evm";
-import MemeTokenAbi from "@/config/MemeToken.json";
-
-// The RPC endpoint for the Sei testnet
+// THE RPC ENDPOINT FOR THE SEI TESTNET
 const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
 
-interface CreateTokenArgs {
-  amount: number;
+// Define the shape of the context state
+interface WalletContextState {
+  address: string | null;
+  connectWallet: () => Promise<void>;
+  disconnectWallet: () => void;
+  provider: JsonRpcProvider | null; // This will be our stable, configured provider
+  getSigner: () => Promise<ethers.JsonRpcSigner | null>; // Function to get a signer
 }
 
-export const useCreateEvmToken = () => {
-  const [isCreating, setIsCreating] = useState(false);
-  const { address } = useWallet();
+const WalletContext = createContext<WalletContextState | undefined>(undefined);
 
-  const createToken = async ({ amount }: CreateTokenArgs) => {
-    if (!address) {
-      toast.error("Wallet not connected. Please connect your wallet first.");
-      return;
-    }
+interface WalletProviderProps {
+  children: ReactNode;
+}
 
-    if (typeof window.ethereum === "undefined") {
-      toast.error("EVM wallet (e.g., MetaMask) not found.");
-      return;
-    }
+export const WalletProvider = ({ children }: WalletProviderProps) => {
+  const [address, setAddress] = useState<string | null>(null);
 
-    setIsCreating(true);
-    try {
-      // 1. Create a specific JSON RPC Provider for Sei, disabling ENS.
-      const provider = new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true });
+  // Create a stable, configured JSON RPC Provider. This solves the ENS issue.
+  const [provider] = useState<JsonRpcProvider>(
+    () => new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true }),
+  );
 
-      // 2. Get the signer from the browser's wallet provider.
-      const browserProvider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await browserProvider.getSigner();
-
-      // 3. Create a contract instance connected to the signer.
-      const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
-
-      const amountToMint = ethers.parseUnits(amount.toString(), 18);
-
-      toast.info("Sending transaction to mint tokens...");
-      const tx = await contract.mint(address, amountToMint);
-
-      toast.info("Waiting for transaction confirmation...", { id: "mint-tx" });
-      await tx.wait();
-
-      toast.success("Successfully minted tokens!", { id: "mint-tx" });
-    } catch (error: any) {
-      console.error("Failed to mint tokens:", error);
-      const reason = error.reason || error.message || "An unknown error occurred.";
-      toast.error(`Failed to mint tokens: ${reason}`);
-    } finally {
-      setIsCreating(false);
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+          console.log("Wallet connected:", accounts[0]);
+        }
+      } catch (error) {
+        console.error("User denied account access or error occurred:", error);
+      }
+    } else {
+      alert("Please install an EVM-compatible wallet like MetaMask.");
     }
   };
 
-  return { createToken, isCreating };
+  const getSigner = async (): Promise<ethers.JsonRpcSigner | null> => {
+    if (typeof window.ethereum === "undefined") return null;
+    // We get a fresh signer each time, which is best practice
+    const browserProvider = new ethers.BrowserProvider(window.ethereum);
+    return await browserProvider.getSigner();
+  };
+
+  const disconnectWallet = () => {
+    setAddress(null);
+    console.log("Wallet disconnected");
+  };
+
+  useEffect(() => {
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        setAddress(accounts.length > 0 ? accounts[0] : null);
+      };
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      return () => {
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+      };
+    }
+  }, []);
+
+  return (
+    <WalletContext.Provider value={{ address, connectWallet, disconnectWallet, provider, getSigner }}>
+      {children}
+    </WalletContext.Provider>
+  );
 };
+
+export const useWallet = () => {
+  const context = useContext(WalletContext);
+  if (context === undefined) {
+    throw new Error("useWallet must be used within a WalletProvider");
+  }
+  return context;
+};
+
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}

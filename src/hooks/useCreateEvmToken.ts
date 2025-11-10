@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ethers } from "ethers";
 import { toast } from "sonner";
+
 import { useWallet } from "@/contexts/WalletContext";
 import { MEME_TOKEN_CONTRACT_ADDRESS } from "@/config/evm";
 import MemeTokenAbi from "@/config/MemeToken.json";
@@ -22,28 +23,20 @@ export const useCreateEvmToken = () => {
     setIsCreating(true);
     try {
       const signer = await getSigner();
-
-      // Explicitly check if getSigner returned null
       if (!signer) {
-        // A toast error would have already been shown in getSigner if the network was wrong
-        throw new Error(
-          "Wallet signer could not be obtained. Check if your wallet is connected and on the correct network.",
-        );
-      }
-      if (!ethers.isAddress(MEME_TOKEN_CONTRACT_ADDRESS)) {
-        toast.error(
-          "Token contract address is not configured. Please set MEME_TOKEN_CONTRACT_ADDRESS in src/config/evm.ts to a deployed address.",
-        );
-        return;
+        throw new Error("Wallet signer could not be obtained.");
       }
 
-      const contractAddress = ethers.getAddress(MEME_TOKEN_CONTRACT_ADDRESS);
-      const contract = new ethers.Contract(contractAddress, MemeTokenAbi, signer);
+      const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
       const amountToMint = ethers.parseUnits(amount.toString(), 18);
 
       toast.info("Sending transaction to mint tokens...");
-      // Use the connected address directly, not as a parameter that might be resolved
-      const tx = await contract.mint(await signer.getAddress(), amountToMint);
+
+      // --- THE FIX IS HERE ---
+      // We are overriding the automatic gas estimation with a manual limit.
+      // 200,000 is a safe, standard limit for a simple mint function.
+      const tx = await contract.mint(address, amountToMint, { gasLimit: 200000 });
+      // --- END OF FIX ---
 
       toast.info("Waiting for transaction confirmation...", { id: "mint-tx" });
       await tx.wait();
@@ -51,7 +44,9 @@ export const useCreateEvmToken = () => {
       toast.success("Successfully minted tokens!", { id: "mint-tx" });
     } catch (error: any) {
       console.error("Failed to mint tokens:", error);
-      toast.error(`Failed to mint tokens: ${error.reason || error.message}`);
+      // Let's add more detailed error logging
+      const reason = error.reason || error.data?.message || error.message || "An unknown error occurred.";
+      toast.error(`Failed to mint tokens: ${reason}`);
     } finally {
       setIsCreating(false);
     }

@@ -1,6 +1,6 @@
 // EVM Configuration for Sei Testnet
-// EVM Configuration for Sei Testnet
-export const MEME_TOKEN_CONTRACT_ADDRESS = "0x5E199e188AdDF3cF20E29d1B7D05B41779bdAa02"; // Your deployed contract address
+// This is the address of your deployed MemeCoinFactory contract.
+export const MEME_FACTORY_CONTRACT_ADDRESS = "0xB0872F43558e8c82D60589DA799906aA78f6b340";
 
 // Using the Atlantic-2 Testnet configuration
 export const SEI_TESTNET_CHAIN_ID = 1329;

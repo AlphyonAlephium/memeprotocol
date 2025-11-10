@@ -35,7 +35,8 @@ export const useCreateEvmToken = () => {
       const amountToMint = ethers.parseUnits(amount.toString(), 18);
 
       toast.info("Sending transaction to mint tokens...");
-      const tx = await contract.mint(address, amountToMint);
+      // Use the connected address directly, not as a parameter that might be resolved
+      const tx = await contract.mint(await signer.getAddress(), amountToMint);
 
       toast.info("Waiting for transaction confirmation...", { id: "mint-tx" });
       await tx.wait();

@@ -6,11 +6,10 @@ const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
 
 interface WalletContextState {
   address: string | null;
-  balance: string | null; // ADDED: To hold the balance
+  balance: string | null;
   openWalletModal: () => void;
   disconnectWallet: () => void;
-  provider: JsonRpcProvider | null;
-  getSigner: () => Promise<ethers.JsonRpcSigner | null>;
+  getSigner: () => Promise<ethers.JsonRpcSigner | null>; // Kept for consistency
   isConnecting: boolean;
 }
 
@@ -18,45 +17,37 @@ const WalletContext = createContext<WalletContextState | undefined>(undefined);
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string | null>(null); // ADDED: Balance state
+  const [balance, setBalance] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<any | null>(null);
 
-  const [provider] = useState<JsonRpcProvider>(
+  // THIS IS OUR ONE, CORRECTLY CONFIGURED PROVIDER. WE WILL USE THIS FOR EVERYTHING.
+  const [staticProvider] = useState<JsonRpcProvider>(
     () => new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true }),
   );
 
-  // ADDED: useEffect to fetch balance when address changes
   useEffect(() => {
     const fetchBalance = async () => {
-      if (address && provider) {
+      if (address && staticProvider) {
         try {
-          const balanceBigInt = await provider.getBalance(address);
-          // Format from Wei (the smallest unit) to Ether (the main unit)
-          const balanceString = ethers.formatEther(balanceBigInt);
-          // Format to a nice, readable number (e.g., 4 decimal places)
-          setBalance(parseFloat(balanceString).toFixed(4));
+          const balanceBigInt = await staticProvider.getBalance(address);
+          setBalance(parseFloat(ethers.formatEther(balanceBigInt)).toFixed(4));
         } catch (error) {
           console.error("Failed to fetch balance:", error);
-          setBalance(null); // Clear balance on error
+          setBalance(null);
         }
       } else {
-        setBalance(null); // Clear balance if not connected
+        setBalance(null);
       }
     };
-
     fetchBalance();
-  }, [address, provider]); // This effect runs whenever the address changes
+  }, [address, staticProvider]);
 
   useEffect(() => {
     const onAnnounceProvider = (event: Event) => {
       const { detail } = event as CustomEvent<EIP6963ProviderDetail>;
-      setDiscoveredProviders((prev) => {
-        if (prev.find((p) => p.info.uuid === detail.info.uuid)) return prev;
-        return [...prev, detail];
-      });
+      setDiscoveredProviders((p) => (p.find((x) => x.info.uuid === detail.info.uuid) ? p : [...p, detail]));
     };
     window.addEventListener("eip6963:announceProvider", onAnnounceProvider);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
@@ -72,7 +63,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       const accounts = await providerDetail.provider.request({ method: "eth_requestAccounts" });
       if (accounts.length > 0) {
         setAddress(accounts[0]);
-        setSelectedProvider(() => providerDetail.provider);
+        // We only store the address, not the whole provider object
       }
     } catch (error) {
       console.error("User denied account access:", error);
@@ -82,33 +73,23 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const getSigner = async (): Promise<ethers.JsonRpcSigner | null> => {
-    if (!selectedProvider) return null;
-    const browserProvider = new ethers.BrowserProvider(selectedProvider);
-    return await browserProvider.getSigner();
+    if (!address) return null;
+    try {
+      // THE FIX: Get the signer directly from our one staticProvider.
+      // It will use the connected account from the user's wallet.
+      return await staticProvider.getSigner(address);
+    } catch (error) {
+      console.error("Could not get signer:", error);
+      return null;
+    }
   };
 
   const disconnectWallet = () => {
     setAddress(null);
-    setSelectedProvider(null);
   };
 
-  useEffect(() => {
-    if (selectedProvider && selectedProvider.on) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setAddress(accounts.length > 0 ? accounts[0] : null);
-      };
-      selectedProvider.on("accountsChanged", handleAccountsChanged);
-      return () => {
-        selectedProvider.removeListener("accountsChanged", handleAccountsChanged);
-      };
-    }
-  }, [selectedProvider]);
-
   return (
-    // ADDED: Pass `balance` in the context value
-    <WalletContext.Provider
-      value={{ address, balance, openWalletModal, disconnectWallet, provider, getSigner, isConnecting }}
-    >
+    <WalletContext.Provider value={{ address, balance, openWalletModal, disconnectWallet, getSigner, isConnecting }}>
       {children}
       <WalletSelector
         isOpen={isModalOpen}
@@ -122,8 +103,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
 export const useWallet = () => {
   const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error("useWallet must be used within a WalletProvider");
-  }
+  if (context === undefined) throw new Error("useWallet must be used within a WalletProvider");
   return context;
 };

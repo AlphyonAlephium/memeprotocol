@@ -12,26 +12,22 @@ interface CreateTokenArgs {
 
 export const useCreateEvmToken = () => {
   const [isCreating, setIsCreating] = useState(false);
-  // Get the getSigner function and address from the one true source: our context.
   const { getSigner, address } = useWallet();
 
   const createToken = async ({ amount }: CreateTokenArgs) => {
     if (!address) {
-      toast.error("Wallet not connected. Please connect your wallet first.");
+      toast.error("Wallet not connected.");
       return;
     }
 
     setIsCreating(true);
     try {
-      // Get the signer from the context
       const signer = await getSigner();
       if (!signer) {
-        throw new Error("Could not get wallet signer.");
+        throw new Error("Wallet signer not available.");
       }
 
-      // Create the contract instance using the correct signer
       const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
-
       const amountToMint = ethers.parseUnits(amount.toString(), 18);
 
       toast.info("Sending transaction to mint tokens...");

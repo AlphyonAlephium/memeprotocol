@@ -12,6 +12,8 @@ const REQUIRED_CHAIN_ID =
 export interface WalletContextState {
   address: string | null;
   balance: string | null;
+  network: string | null;
+  chainId: number | null;
   openWalletModal: () => void;
   disconnectWallet: () => void;
   getSigner: () => Promise<ethers.Signer | null>;
@@ -23,6 +25,8 @@ const WalletContext = createContext<WalletContextState | undefined>(undefined);
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
+  const [network, setNetwork] = useState<string | null>(null);
+  const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
@@ -67,6 +71,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       if (accounts.length > 0) {
         setAddress(accounts[0]);
         setSelectedWalletProvider(providerDetail.provider);
+        
+        // Detect network
+        const chainIdHex = await providerDetail.provider.request({ method: "eth_chainId" });
+        const chainIdNum = parseInt(chainIdHex, 16);
+        setChainId(chainIdNum);
+        
+        const networkName = chainIdNum === REQUIRED_CHAIN_ID ? "Sei EVM Testnet" : `Chain ${chainIdNum}`;
+        setNetwork(networkName);
       }
     } catch (error) {
       console.error("User denied account access:", error);
@@ -93,7 +105,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <WalletContext.Provider value={{ address, balance, openWalletModal, disconnectWallet, getSigner, isConnecting }}>
+    <WalletContext.Provider value={{ address, balance, network, chainId, openWalletModal, disconnectWallet, getSigner, isConnecting }}>
       {children}
       <WalletSelector
         isOpen={isModalOpen}

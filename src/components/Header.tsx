@@ -6,8 +6,7 @@ import { toast } from "sonner";
 
 const Header = () => {
   const location = useLocation();
-  // ADDED: Get `balance` from the context
-  const { address, balance, openWalletModal, disconnectWallet, isConnecting } = useWallet();
+  const { address, balance, network, openWalletModal, disconnectWallet, isConnecting } = useWallet();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -40,11 +39,19 @@ const Header = () => {
           </Button>
         ) : (
           <div className="flex items-center gap-3">
-            {/* ADDED: The balance display is back */}
+            {/* Network Badge */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-xs font-medium text-primary">{network || "Unknown Network"}</span>
+            </div>
+            
+            {/* Balance Display */}
             <div className="text-right hidden sm:block">
               <p className="text-xs text-muted-foreground">Balance</p>
               <p className="text-sm font-medium">{balance ? `${balance} SEI` : "..."}</p>
             </div>
+            
+            {/* Disconnect Button */}
             <Button variant="secondary" onClick={handleDisconnect} title="Disconnect" className="font-mono">
               <LogOut className="w-4 h-4 mr-2" />
               {address.slice(0, 6)}...{address.slice(-4)}

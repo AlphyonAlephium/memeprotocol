@@ -30,8 +30,15 @@ export const useCreateEvmToken = () => {
           "Wallet signer could not be obtained. Check if your wallet is connected and on the correct network.",
         );
       }
+      if (!ethers.isAddress(MEME_TOKEN_CONTRACT_ADDRESS)) {
+        toast.error(
+          "Token contract address is not configured. Please set MEME_TOKEN_CONTRACT_ADDRESS in src/config/evm.ts to a deployed address.",
+        );
+        return;
+      }
 
-      const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
+      const contractAddress = ethers.getAddress(MEME_TOKEN_CONTRACT_ADDRESS);
+      const contract = new ethers.Contract(contractAddress, MemeTokenAbi, signer);
       const amountToMint = ethers.parseUnits(amount.toString(), 18);
 
       toast.info("Sending transaction to mint tokens...");

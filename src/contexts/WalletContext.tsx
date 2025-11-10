@@ -9,7 +9,7 @@ interface WalletContextState {
   balance: string | null;
   openWalletModal: () => void;
   disconnectWallet: () => void;
-  getSigner: () => Promise<ethers.JsonRpcSigner | null>;
+  getSigner: () => Promise<ethers.Signer | null>; // Return the base Signer type
   isConnecting: boolean;
 }
 
@@ -21,9 +21,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
-  const [selectedWalletProvider, setSelectedWalletProvider] = useState<any | null>(null);
 
-  // Provider for READ-ONLY operations (like getBalance). This prevents the ENS error for reads.
+  // This is our read-only provider, correctly configured to NOT use ENS.
   const [staticProvider] = useState<JsonRpcProvider>(() => new JsonRpcProvider(SEI_RPC_URL));
 
   useEffect(() => {
@@ -59,11 +58,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsModalOpen(false);
     setIsConnecting(true);
     try {
-      const accounts = await providerDetail.provider.request({ method: "eth_requestAccounts" });
+      // Use the raw EIP-1193 provider from the selected wallet
+      const browserProvider = new ethers.BrowserProvider(providerDetail.provider);
+      const accounts = await browserProvider.send("eth_requestAccounts", []);
       if (accounts.length > 0) {
         setAddress(accounts[0]);
-        // We MUST store the chosen wallet's provider object to create a signer later
-        setSelectedWalletProvider(providerDetail.provider);
       }
     } catch (error) {
       console.error("User denied account access:", error);
@@ -72,46 +71,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const getSigner = async (): Promise<ethers.JsonRpcSigner | null> => {
-    // THE REAL FIX:
-    // We check for the provider object that the user selected from the modal.
-    if (!selectedWalletProvider) {
-      console.error("No wallet provider selected.");
+  // THE DEFINITIVE FIX IS HERE
+  const getSigner = async (): Promise<ethers.Signer | null> => {
+    if (!address) {
+      console.error("No address available, cannot get signer.");
       return null;
     }
     try {
-      // Create a NEW BrowserProvider INSTANCE using the SELECTED wallet provider.
-      // This is the only way to get a signer that can talk to the user's wallet.
-      const browserProvider = new ethers.BrowserProvider(selectedWalletProvider);
-      // This will now succeed because it's connected to the actual wallet.
-      return await browserProvider.getSigner();
+      // 1. Create a "void signer", which is a signer that knows the user's address but can't sign anything yet.
+      const signer = new ethers.VoidSigner(address, staticProvider);
+
+      // 2. Crucially, connect it to our correctly configured staticProvider.
+      // This creates a new Signer instance that can sign transactions via the wallet
+      // AND uses our safe provider for all network communication.
+      return signer.connect(staticProvider);
     } catch (error) {
-      console.error("Could not get signer:", error);
+      console.error("Could not create connected signer:", error);
       return null;
     }
   };
 
   const disconnectWallet = () => {
     setAddress(null);
-    setSelectedWalletProvider(null);
   };
-
-  // This effect listens for account changes from the connected wallet
-  useEffect(() => {
-    if (selectedWalletProvider && selectedWalletProvider.on) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setAddress(accounts[0]);
-        } else {
-          disconnectWallet();
-        }
-      };
-      selectedWalletProvider.on("accountsChanged", handleAccountsChanged);
-      return () => {
-        selectedWalletProvider.removeListener("accountsChanged", handleAccountsChanged);
-      };
-    }
-  }, [selectedWalletProvider]);
 
   return (
     <WalletContext.Provider value={{ address, balance, openWalletModal, disconnectWallet, getSigner, isConnecting }}>

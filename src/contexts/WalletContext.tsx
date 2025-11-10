@@ -6,6 +6,7 @@ const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
 
 interface WalletContextState {
   address: string | null;
+  balance: string | null; // ADDED: To hold the balance
   openWalletModal: () => void;
   disconnectWallet: () => void;
   provider: JsonRpcProvider | null;
@@ -17,6 +18,7 @@ const WalletContext = createContext<WalletContextState | undefined>(undefined);
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [address, setAddress] = useState<string | null>(null);
+  const [balance, setBalance] = useState<string | null>(null); // ADDED: Balance state
   const [isConnecting, setIsConnecting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
@@ -26,6 +28,28 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     () => new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true }),
   );
 
+  // ADDED: useEffect to fetch balance when address changes
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (address && provider) {
+        try {
+          const balanceBigInt = await provider.getBalance(address);
+          // Format from Wei (the smallest unit) to Ether (the main unit)
+          const balanceString = ethers.formatEther(balanceBigInt);
+          // Format to a nice, readable number (e.g., 4 decimal places)
+          setBalance(parseFloat(balanceString).toFixed(4));
+        } catch (error) {
+          console.error("Failed to fetch balance:", error);
+          setBalance(null); // Clear balance on error
+        }
+      } else {
+        setBalance(null); // Clear balance if not connected
+      }
+    };
+
+    fetchBalance();
+  }, [address, provider]); // This effect runs whenever the address changes
+
   useEffect(() => {
     const onAnnounceProvider = (event: Event) => {
       const { detail } = event as CustomEvent<EIP6963ProviderDetail>;
@@ -34,10 +58,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return [...prev, detail];
       });
     };
-
     window.addEventListener("eip6963:announceProvider", onAnnounceProvider);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
-
     return () => window.removeEventListener("eip6963:announceProvider", onAnnounceProvider);
   }, []);
 
@@ -83,7 +105,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedProvider]);
 
   return (
-    <WalletContext.Provider value={{ address, openWalletModal, disconnectWallet, provider, getSigner, isConnecting }}>
+    // ADDED: Pass `balance` in the context value
+    <WalletContext.Provider
+      value={{ address, balance, openWalletModal, disconnectWallet, provider, getSigner, isConnecting }}
+    >
       {children}
       <WalletSelector
         isOpen={isModalOpen}

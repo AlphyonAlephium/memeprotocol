@@ -15,37 +15,18 @@ interface CreateTokenArgs {
 
 export const useCreateEvmToken = () => {
   const [isCreating, setIsCreating] = useState(false);
-  // We no longer need the provider from useWallet, just the user's address
-  const { address } = useWallet();
+  const { address, provider } = useWallet();
 
   const createToken = async ({ amount }: CreateTokenArgs) => {
-    // Ensure wallet is connected (address is available)
-    if (!address) {
+    if (!address || !provider) {
       toast.error("Wallet not connected. Please connect your wallet first.");
-      return;
-    }
-
-    // Check if window.ethereum is available
-    if (typeof window.ethereum === "undefined") {
-      toast.error("EVM wallet (e.g., MetaMask) not found.");
       return;
     }
 
     setIsCreating(true);
     try {
-      // **THE FIX STARTS HERE**
-
-      // 1. Create a specific JSON RPC Provider for Sei, disabling ENS.
-      const provider = new JsonRpcProvider(SEI_RPC_URL, undefined, { staticNetwork: true });
-
-      // 2. Get the signer from the browser's wallet provider.
-      const browserProvider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await browserProvider.getSigner();
-
-      // 3. Create a contract instance connected to the signer.
+      const signer = await provider.getSigner();
       const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
-
-      // **THE FIX ENDS HERE**
 
       // The rest of the logic is the same
       const amountToMint = ethers.parseUnits(amount.toString(), 18);

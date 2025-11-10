@@ -1,15 +1,16 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from "react";
-import { ethers, JsonRpcProvider } from "ethers";
+import { ethers, JsonRpcProvider, Network } from "ethers"; // Import Network
 import { WalletSelector, EIP6963ProviderDetail } from "@/components/WalletSelector";
 
 const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
+const SEI_TESTNET_CHAIN_ID = 1328;
 
 interface WalletContextState {
   address: string | null;
   balance: string | null;
   openWalletModal: () => void;
   disconnectWallet: () => void;
-  getSigner: () => Promise<ethers.Signer | null>; // Return the base Signer type
+  getSigner: () => Promise<ethers.Signer | null>;
   isConnecting: boolean;
 }
 
@@ -21,9 +22,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
+  const [selectedWalletProvider, setSelectedWalletProvider] = useState<any | null>(null);
 
-  // This is our read-only provider, correctly configured to NOT use ENS.
-  const [staticProvider] = useState<JsonRpcProvider>(() => new JsonRpcProvider(SEI_RPC_URL));
+  // Read-only provider for fetching balance
+  const [staticProvider] = useState(() => new JsonRpcProvider(SEI_RPC_URL));
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -58,11 +60,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsModalOpen(false);
     setIsConnecting(true);
     try {
-      // Use the raw EIP-1193 provider from the selected wallet
-      const browserProvider = new ethers.BrowserProvider(providerDetail.provider);
-      const accounts = await browserProvider.send("eth_requestAccounts", []);
+      const accounts = await providerDetail.provider.request({ method: "eth_requestAccounts" });
       if (accounts.length > 0) {
         setAddress(accounts[0]);
+        setSelectedWalletProvider(providerDetail.provider);
       }
     } catch (error) {
       console.error("User denied account access:", error);
@@ -71,29 +72,51 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // THE DEFINITIVE FIX IS HERE
+  // THE FINAL, CORRECT IMPLEMENTATION OF getSigner
   const getSigner = async (): Promise<ethers.Signer | null> => {
-    if (!address) {
-      console.error("No address available, cannot get signer.");
+    if (!selectedWalletProvider) {
+      console.error("Cannot get signer: No wallet provider selected.");
       return null;
     }
     try {
-      // 1. Create a "void signer", which is a signer that knows the user's address but can't sign anything yet.
-      const signer = new ethers.VoidSigner(address, staticProvider);
+      // 1. Create a new BrowserProvider connected to the user's chosen wallet.
+      const browserProvider = new ethers.BrowserProvider(selectedWalletProvider);
 
-      // 2. Crucially, connect it to our correctly configured staticProvider.
-      // This creates a new Signer instance that can sign transactions via the wallet
-      // AND uses our safe provider for all network communication.
-      return signer.connect(staticProvider);
+      // 2. VERIFY the network. This is a crucial step.
+      const network = await browserProvider.getNetwork();
+      if (Number(network.chainId) !== SEI_TESTNET_CHAIN_ID) {
+        toast.error(`Please switch your wallet to the Sei Testnet (Chain ID: ${SEI_TESTNET_CHAIN_ID})`);
+        throw new Error("Wrong network");
+      }
+
+      // 3. Get the signer from the correctly configured provider.
+      return await browserProvider.getSigner();
     } catch (error) {
-      console.error("Could not create connected signer:", error);
+      console.error("Failed to get signer:", error);
       return null;
     }
   };
 
   const disconnectWallet = () => {
     setAddress(null);
+    setSelectedWalletProvider(null);
   };
+
+  useEffect(() => {
+    if (selectedWalletProvider && selectedWalletProvider.on) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+        } else {
+          disconnectWallet();
+        }
+      };
+      selectedWalletProvider.on("accountsChanged", handleAccountsChanged);
+      return () => {
+        selectedWalletProvider.removeListener("accountsChanged", handleAccountsChanged);
+      };
+    }
+  }, [selectedWalletProvider]);
 
   return (
     <WalletContext.Provider value={{ address, balance, openWalletModal, disconnectWallet, getSigner, isConnecting }}>

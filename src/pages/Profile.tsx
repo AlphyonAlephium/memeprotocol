@@ -3,14 +3,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, TrendingUp, Clock, Copy, Check, Settings } from "lucide-react";
-import { useWallet, type WalletContextState } from "@/contexts/WalletContext";
+import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useUserTokens } from "@/hooks/useUserTokens";
 
 const Profile = () => {
-  const { isConnected, address, balance, connectWallet, isConnecting } = useWallet();
+  const { address, balance, openWalletModal, isConnecting } = useWallet();
+  const isConnected = !!address;
   const [copied, setCopied] = useState(false);
   const { data: userTokens, isLoading: tokensLoading } = useUserTokens(address);
 
@@ -44,7 +45,7 @@ const Profile = () => {
               <Button 
                 size="lg" 
                 className="shadow-lg shadow-primary/25" 
-                onClick={connectWallet}
+                onClick={openWalletModal}
                 disabled={isConnecting}
               >
                 <Wallet className="w-5 h-5 mr-2" />

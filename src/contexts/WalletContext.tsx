@@ -3,10 +3,13 @@ import { ethers, JsonRpcProvider } from "ethers";
 import { toast } from "sonner";
 import { WalletSelector, EIP6963ProviderDetail } from "@/components/WalletSelector";
 
-const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
-const SEI_TESTNET_CHAIN_ID = 1328;
+import { SEI_TESTNET_CHAIN_ID as REQUIRED_CHAIN_ID_HEX, SEI_TESTNET_RPC } from "@/config/evm";
+const REQUIRED_CHAIN_ID =
+  typeof REQUIRED_CHAIN_ID_HEX === "string"
+    ? parseInt(REQUIRED_CHAIN_ID_HEX, 16)
+    : Number(REQUIRED_CHAIN_ID_HEX);
 
-interface WalletContextState {
+export interface WalletContextState {
   address: string | null;
   balance: string | null;
   openWalletModal: () => void;
@@ -25,7 +28,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
   const [selectedWalletProvider, setSelectedWalletProvider] = useState<any | null>(null);
 
-  const [staticProvider] = useState(() => new JsonRpcProvider(SEI_RPC_URL));
+  const [staticProvider] = useState(() => new JsonRpcProvider(SEI_TESTNET_RPC));
 
   useEffect(() => {
     if (address && staticProvider) {
@@ -77,8 +80,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     try {
       const browserProvider = new ethers.BrowserProvider(selectedWalletProvider, "any");
       const network = await browserProvider.getNetwork();
-      if (Number(network.chainId) !== SEI_TESTNET_CHAIN_ID) {
-        toast.error(`Please switch your wallet to the Sei Testnet (Chain ID: ${SEI_TESTNET_CHAIN_ID})`);
+      if (Number(network.chainId) !== REQUIRED_CHAIN_ID) {
+        const requiredHex = "0x" + REQUIRED_CHAIN_ID.toString(16);
+        toast.error(`Please switch your wallet to Sei EVM Testnet (Chain ID: ${REQUIRED_CHAIN_ID} / ${requiredHex})`);
         return null;
       }
       return await browserProvider.getSigner();

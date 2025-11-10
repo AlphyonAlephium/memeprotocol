@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Droplets, TrendingUp, Wallet } from "lucide-react";
-import { useWallet, type WalletContextState } from "@/contexts/WalletContext";
+import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
 
 interface AddLiquidityFormProps {
@@ -14,7 +14,8 @@ interface AddLiquidityFormProps {
 }
 
 const AddLiquidityForm = ({ tokenSymbol, tokenName, isOwner }: AddLiquidityFormProps) => {
-  const { isConnected, balance, connectWallet } = useWallet();
+  const { address, balance, openWalletModal } = useWallet();
+  const isConnected = !!address;
   const [tokenAmount, setTokenAmount] = useState("");
   const [seiAmount, setSeiAmount] = useState("");
   const [isAddingLiquidity, setIsAddingLiquidity] = useState(false);
@@ -119,7 +120,7 @@ const AddLiquidityForm = ({ tokenSymbol, tokenName, isOwner }: AddLiquidityFormP
         {!isConnected && (
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
             <p className="text-sm font-medium">Connect your wallet to add liquidity</p>
-            <Button onClick={connectWallet} className="shadow-lg shadow-primary/25">
+            <Button onClick={openWalletModal} className="shadow-lg shadow-primary/25">
               <Wallet className="w-4 h-4 mr-2" />
               Connect Wallet
             </Button>

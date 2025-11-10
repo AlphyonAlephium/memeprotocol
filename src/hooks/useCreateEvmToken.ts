@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { ethers, JsonRpcProvider } from "ethers"; // Import JsonRpcProvider
+import { ethers } from "ethers";
 import { toast } from "sonner";
 
 import { useWallet } from "@/contexts/WalletContext";
 import { MEME_TOKEN_CONTRACT_ADDRESS } from "@/config/evm";
 import MemeTokenAbi from "@/config/MemeToken.json";
-
-// The RPC endpoint for the Sei testnet
-const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
 
 interface CreateTokenArgs {
   amount: number;
@@ -15,20 +12,26 @@ interface CreateTokenArgs {
 
 export const useCreateEvmToken = () => {
   const [isCreating, setIsCreating] = useState(false);
-  const { address, provider } = useWallet();
+  // Get the getSigner function and address from the one true source: our context.
+  const { getSigner, address } = useWallet();
 
   const createToken = async ({ amount }: CreateTokenArgs) => {
-    if (!address || !provider) {
+    if (!address) {
       toast.error("Wallet not connected. Please connect your wallet first.");
       return;
     }
 
     setIsCreating(true);
     try {
-      const signer = await provider.getSigner();
+      // Get the signer from the context
+      const signer = await getSigner();
+      if (!signer) {
+        throw new Error("Could not get wallet signer.");
+      }
+
+      // Create the contract instance using the correct signer
       const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
 
-      // The rest of the logic is the same
       const amountToMint = ethers.parseUnits(amount.toString(), 18);
 
       toast.info("Sending transaction to mint tokens...");

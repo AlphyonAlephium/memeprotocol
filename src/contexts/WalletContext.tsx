@@ -1,9 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from "react";
-import { ethers } from "ethers";
+import { ethers, JsonRpcProvider } from "ethers";
 import { toast } from "sonner";
 import { WalletSelector, EIP6963ProviderDetail } from "@/components/WalletSelector";
 
-import { SEI_TESTNET_CHAIN_ID as REQUIRED_CHAIN_ID_HEX } from "@/config/evm";
+import { SEI_TESTNET_CHAIN_ID as REQUIRED_CHAIN_ID_HEX, SEI_TESTNET_RPC } from "@/config/evm";
 const REQUIRED_CHAIN_ID =
   typeof REQUIRED_CHAIN_ID_HEX === "string"
     ? parseInt(REQUIRED_CHAIN_ID_HEX, 16)
@@ -32,22 +32,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
   const [selectedWalletProvider, setSelectedWalletProvider] = useState<any | null>(null);
 
+  const [staticProvider] = useState(() => new JsonRpcProvider(SEI_TESTNET_RPC));
+
   useEffect(() => {
-    if (address && selectedWalletProvider) {
-      const fetchBalance = async () => {
-        try {
-          const browserProvider = new ethers.BrowserProvider(selectedWalletProvider, "any");
-          const balanceBigInt = await browserProvider.getBalance(address);
+    if (address && staticProvider) {
+      staticProvider
+        .getBalance(address)
+        .then((balanceBigInt) => {
           setBalance(parseFloat(ethers.formatEther(balanceBigInt)).toFixed(4));
-        } catch (err) {
-          console.error("Failed to fetch balance:", err);
-        }
-      };
-      fetchBalance();
+        })
+        .catch((err) => console.error("Failed to fetch balance:", err));
     } else {
       setBalance(null);
     }
-  }, [address, selectedWalletProvider]);
+  }, [address, staticProvider]);
 
   useEffect(() => {
     const onAnnounceProvider = (event: Event) => {

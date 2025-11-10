@@ -25,7 +25,26 @@ const Header = () => {
           </div>
           <span className="text-lg font-semibold text-foreground">MemeMarket</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-1">{/* Nav Links */}</nav>
+        <nav className="hidden md:flex items-center gap-1">
+          <Link to="/markets">
+            <Button variant="ghost" className={isActive("/markets") ? "bg-primary/10 text-primary" : ""}>
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Markets
+            </Button>
+          </Link>
+          <Link to="/create">
+            <Button variant="ghost" className={isActive("/create") ? "bg-primary/10 text-primary" : ""}>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Create
+            </Button>
+          </Link>
+          <Link to="/profile">
+            <Button variant="ghost" className={isActive("/profile") ? "bg-primary/10 text-primary" : ""}>
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+          </Link>
+        </nav>
 
         {!address ? (
           <Button
@@ -40,7 +59,7 @@ const Header = () => {
         ) : (
           <div className="flex items-center gap-3">
             {/* Network Badge */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-xs font-medium text-primary">{network || "Unknown Network"}</span>
             </div>

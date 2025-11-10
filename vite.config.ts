@@ -1,30 +1,16 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
+import react from "@vitejs/plugin-react-swc";
+import { defineConfig } from "vite";
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-  },
-  plugins: [
-    react(), 
-    mode === "development" && componentTagger(),
-    nodePolyfills({
-      include: ['buffer'],
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true,
-      },
-    }),
-  ].filter(Boolean),
+export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+  // Define a global variable to prevent crashes related to `global` not being defined
+  define: {
+    global: {},
+  },
+});

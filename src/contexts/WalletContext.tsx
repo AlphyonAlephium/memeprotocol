@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from "react";
-import { ethers, JsonRpcProvider, Network } from "ethers"; // Import Network
+import { ethers, JsonRpcProvider } from "ethers";
+import { toast } from "sonner";
 import { WalletSelector, EIP6963ProviderDetail } from "@/components/WalletSelector";
 
 const SEI_RPC_URL = "https://evm-rpc.atlantic-2.seinetwork.io/";
@@ -24,24 +25,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [discoveredProviders, setDiscoveredProviders] = useState<EIP6963ProviderDetail[]>([]);
   const [selectedWalletProvider, setSelectedWalletProvider] = useState<any | null>(null);
 
-  // Read-only provider for fetching balance
   const [staticProvider] = useState(() => new JsonRpcProvider(SEI_RPC_URL));
 
   useEffect(() => {
-    const fetchBalance = async () => {
-      if (address && staticProvider) {
-        try {
-          const balanceBigInt = await staticProvider.getBalance(address);
+    if (address && staticProvider) {
+      staticProvider
+        .getBalance(address)
+        .then((balanceBigInt) => {
           setBalance(parseFloat(ethers.formatEther(balanceBigInt)).toFixed(4));
-        } catch (error) {
-          console.error("Failed to fetch balance:", error);
-          setBalance(null);
-        }
-      } else {
-        setBalance(null);
-      }
-    };
-    fetchBalance();
+        })
+        .catch((err) => console.error("Failed to fetch balance:", err));
+    } else {
+      setBalance(null);
+    }
   }, [address, staticProvider]);
 
   useEffect(() => {
@@ -55,6 +51,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const openWalletModal = () => setIsModalOpen(true);
+  const disconnectWallet = () => {
+    setAddress(null);
+    setSelectedWalletProvider(null);
+  };
 
   const handleSelectProvider = useCallback(async (providerDetail: EIP6963ProviderDetail) => {
     setIsModalOpen(false);
@@ -72,51 +72,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // THE FINAL, CORRECT IMPLEMENTATION OF getSigner
   const getSigner = async (): Promise<ethers.Signer | null> => {
-    if (!selectedWalletProvider) {
-      console.error("Cannot get signer: No wallet provider selected.");
-      return null;
-    }
+    if (!selectedWalletProvider) return null;
     try {
-      // 1. Create a new BrowserProvider connected to the user's chosen wallet.
-      const browserProvider = new ethers.BrowserProvider(selectedWalletProvider);
-
-      // 2. VERIFY the network. This is a crucial step.
+      const browserProvider = new ethers.BrowserProvider(selectedWalletProvider, "any");
       const network = await browserProvider.getNetwork();
       if (Number(network.chainId) !== SEI_TESTNET_CHAIN_ID) {
         toast.error(`Please switch your wallet to the Sei Testnet (Chain ID: ${SEI_TESTNET_CHAIN_ID})`);
-        throw new Error("Wrong network");
+        return null;
       }
-
-      // 3. Get the signer from the correctly configured provider.
       return await browserProvider.getSigner();
     } catch (error) {
       console.error("Failed to get signer:", error);
       return null;
     }
   };
-
-  const disconnectWallet = () => {
-    setAddress(null);
-    setSelectedWalletProvider(null);
-  };
-
-  useEffect(() => {
-    if (selectedWalletProvider && selectedWalletProvider.on) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setAddress(accounts[0]);
-        } else {
-          disconnectWallet();
-        }
-      };
-      selectedWalletProvider.on("accountsChanged", handleAccountsChanged);
-      return () => {
-        selectedWalletProvider.removeListener("accountsChanged", handleAccountsChanged);
-      };
-    }
-  }, [selectedWalletProvider]);
 
   return (
     <WalletContext.Provider value={{ address, balance, openWalletModal, disconnectWallet, getSigner, isConnecting }}>

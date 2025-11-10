@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ethers } from "ethers";
 import { toast } from "sonner";
-
 import { useWallet } from "@/contexts/WalletContext";
 import { MEME_TOKEN_CONTRACT_ADDRESS } from "@/config/evm";
 import MemeTokenAbi from "@/config/MemeToken.json";
@@ -16,15 +15,20 @@ export const useCreateEvmToken = () => {
 
   const createToken = async ({ amount }: CreateTokenArgs) => {
     if (!address) {
-      toast.error("Wallet not connected.");
+      toast.error("Please connect your wallet first.");
       return;
     }
 
     setIsCreating(true);
     try {
       const signer = await getSigner();
+
+      // Explicitly check if getSigner returned null
       if (!signer) {
-        throw new Error("Wallet signer not available.");
+        // A toast error would have already been shown in getSigner if the network was wrong
+        throw new Error(
+          "Wallet signer could not be obtained. Check if your wallet is connected and on the correct network.",
+        );
       }
 
       const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
@@ -39,8 +43,7 @@ export const useCreateEvmToken = () => {
       toast.success("Successfully minted tokens!", { id: "mint-tx" });
     } catch (error: any) {
       console.error("Failed to mint tokens:", error);
-      const reason = error.reason || error.message || "An unknown error occurred.";
-      toast.error(`Failed to mint tokens: ${reason}`);
+      toast.error(`Failed to mint tokens: ${error.reason || error.message}`);
     } finally {
       setIsCreating(false);
     }

@@ -30,38 +30,13 @@ export const useCreateEvmToken = () => {
       const contract = new ethers.Contract(MEME_TOKEN_CONTRACT_ADDRESS, MemeTokenAbi, signer);
       const amountToMint = ethers.parseUnits(amount.toString(), 18);
 
-      // Get current network fee data and estimate gas precisely
-      const provider = signer.provider as ethers.Provider;
-      const feeData = await provider.getFeeData();
-
-      const estimatedGas = await contract.mint.estimateGas(address, amountToMint);
-      // add a 20% buffer
-      const gasLimit = (estimatedGas * 120n) / 100n;
-
-      // Build tx options compatible with legacy or EIP-1559
-      const txOptions: any = { gasLimit };
-      if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-        txOptions.maxFeePerGas = feeData.maxFeePerGas;
-        txOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
-      } else if (feeData.gasPrice) {
-        txOptions.gasPrice = feeData.gasPrice;
-      }
-
-      // Optional: pre-check sufficient balance for gas
-      const balance = await provider.getBalance(address);
-      const gasPriceForCalc = (txOptions.maxFeePerGas ?? txOptions.gasPrice ?? 0n) as bigint;
-      if (gasPriceForCalc > 0n) {
-        const requiredWei = gasLimit * gasPriceForCalc;
-        if (balance < requiredWei) {
-          toast.error(
-            `Insufficient funds for gas. Need ~${ethers.formatEther(requiredWei)} SEI, you have ${ethers.formatEther(balance)} SEI.`
-          );
-          return;
-        }
-      }
-
       toast.info("Sending transaction to mint tokens...");
-      const tx = await contract.mint(address, amountToMint, txOptions);
+
+      // --- THE FIX IS HERE ---
+      // We are overriding the automatic gas estimation with a manual limit.
+      // 200,000 is a safe, standard limit for a simple mint function.
+      const tx = await contract.mint(address, amountToMint, { gasLimit: 200000 });
+      // --- END OF FIX ---
 
       toast.info("Waiting for transaction confirmation...", { id: "mint-tx" });
       await tx.wait();
